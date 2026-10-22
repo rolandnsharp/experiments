@@ -89,7 +89,11 @@ Decided: the polar pole's modulus is below 1 for every rho and omega, so the
 recurrence is stable by construction, as a statement on proofs.blah.dev
 (https://proofs.blah.dev/theorems/01a16182-70fb-7c74-8bdc-a9f09546bffb); the
 pole's text and its chain rule are held bit for bit by the Alpha laws
-(Proof/VidyaCell). Measured: every bpb number, two seeds at 3K.
+(Proof/VidyaCell). The library on proofs.blah.dev already holds verified
+results on this recurrence (damped-rotation-recurrence-is-causal-convolution,
+damped-rotation-bounded-input-bounded-output, the rounding-error bound), whose
+hypothesis ‖c‖ < 1 is exactly the pole statement, so Vidya's states are bounded
+by M / (1 − ‖c‖) for bounded inputs. Measured: every bpb number, two seeds at 3K.
 
 ## Verdict
 
