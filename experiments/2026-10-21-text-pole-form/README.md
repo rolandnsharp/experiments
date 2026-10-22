@@ -111,6 +111,11 @@ then. The expectation that it shrinks at scale is not yet tested beyond that.
 ## What it changes
 
 The polar pole is the kernel's recurrence in Alpha (Vidya.Pole, Vidya.Cell,
-PoleRecurrenceSM86). Still owed: the real arm at 30K to measure the gap at a
-full pass (queued behind the 6L/64H run). The gain is small; the case for the
-architecture rests more on its compute profile than on the pole.
+PoleRecurrenceSM86). This is the headline experiment: the one variable that
+separates Vidya from Diakosmos, at equal parameters and equal multiply-adds
+per byte, everything else his. Still owed for the claim at scale: the real
+arm at 30K (seed 0, queued behind the 6L/64H run, `chain-real30k.sh`) and a
+second seed of it, so the 30K gap rests on two seeds as the 3K gap does. The
+verdict then reads against the polar 30K run (1.8469) and its seed 1. The gain
+is small; the case for the architecture rests more on its compute profile
+than on the pole.
