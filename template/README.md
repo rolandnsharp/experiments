@@ -40,6 +40,13 @@ Held-out bpb (all scored bytes) per arm; the curve on the 256-window subset;
 CORE if scored; compute (MAC/byte, training FLOP). Samples if they say
 something.
 
+## Decided vs measured
+
+Which claims the Alpha checker decides (the text's laws, the kernels' model
+checks, parameter and MAC counts, equivalences such as grouped = block-diagonal
+dense) and which are measurements with seed and data variance (every bpb and
+CORE number). A measurement is never promoted to a theorem by this repo.
+
 ## Verdict
 
 Against the prediction. Seeds. Caveats.
