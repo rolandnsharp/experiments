@@ -63,6 +63,7 @@ first by this repo.
 
 ```
 INDEX.md                      one row per experiment: date, variable, result, verdict
+QUEUE.md                      experiments planned, with their predictions written before any run
 template/README.md            the paper's sections
 experiments/<date>-<slug>/    README.md (the paper) + the run artifacts
 harness/                      the Python harness as used (copies, with a note of the date)
