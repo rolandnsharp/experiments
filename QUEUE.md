@@ -13,7 +13,6 @@ byte model on CORE.
 | 1 | smear-gate | a learned per-channel gate mixing the previous byte's embedding into the current one before block 0 (~448 parameters, init 0.95) | −0.01 to −0.03 bpb at 3K; the gain shrinks at 30K | 2 × 40 min |
 | 2 | depth-recurrence | blocks 1 and 2 run twice (6 block passes, 4 blocks' parameters) | −0.02 to −0.05 bpb at 3K, i.e. Vidya is compute-bound at this size; if under −0.01, parameter-bound | 2 × 55 min |
 | 3 | muon-momentum-warmup-and-decay | Muon momentum 0.92 → 0.99 over the first 10% of updates and weight decay 0.04 (Diakosmos: fixed momentum, decay 0.01) | −0.01 to −0.02 bpb at 3K; no change in rank order between real and polar | 2 × 40 min |
-| 4 | orthogonal-projection-init | the fused and out projections initialised orthogonal instead of uniform(±1/sqrt(fan_in)) | within ±0.01 bpb at 3K: a null result expected, worth having on record | 2 × 40 min |
 
 ## Notes on each
 
@@ -34,9 +33,6 @@ is short of at 3.4 M parameters. Report MAC/byte beside bpb.
 momentum-warmup records; we inherit Diakosmos's optimiser constants untouched
 and have never varied them. Two flags in `diakosmos_oracle.Update`.
 
-**4. orthogonal-projection-init.** Prior art: OrthoInit in the SmearGate
-record's stack. Cheap, and a clean null result is still a result.
-
 ## Not queued, and why
 
 - Test-time training and sliding-window scoring: they train or condition on
@@ -45,3 +41,6 @@ record's stack. Cheap, and a clean null result is still a result.
 - Bigram hash embeddings: overlaps with what the poles do; revisit if
   smear-gate shows a bigram gain worth chasing further.
 - SentencePiece 8192 and CaseOps: we are byte level by design.
+- Orthogonal projection init: predicted null (within ±0.01 bpb); dropped
+  2026-10-22 rather than spend two seeds confirming it. Revisit only if a
+  run shows early-training instability in the dense projections.
