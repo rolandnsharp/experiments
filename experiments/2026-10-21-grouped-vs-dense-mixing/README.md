@@ -64,6 +64,14 @@ Curve (256 windows, dense / grouped): 500: 2.447 / 3.146; 1000: 2.221 /
 2.899; 1500: 2.119 / 2.793; 2500: 2.048 / 2.712; 3000: 2.028 / 2.689. The
 grouped curve is still falling at 3K but 0.66 behind at every point.
 
+## Decided vs measured
+
+Decided: grouped mixing equals the block-diagonal restriction of the dense
+projection, in exact arithmetic as a statement on proofs.blah.dev
+(https://proofs.blah.dev/theorems/01a16183-668b-783c-9658-32b1313fe5d7) and
+in f32 numerically to 1e-15 by `grouped_check.py`. Measured: both bpb numbers,
+one seed each.
+
 ## Verdict
 
 Grouped loses 0.65 bpb at equal width, far over the 0.3 threshold. The dense

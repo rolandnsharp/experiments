@@ -83,6 +83,14 @@ Learned poles (block 0, polar): periods 2.3 bytes to 3.8K bytes, median
 18–20 bytes; decay lengths 1.5 to 17 bytes, median 3.2. Real: decay lengths
 0.9 to 4.6 bytes, median 2.
 
+## Decided vs measured
+
+Decided: the polar pole's modulus is below 1 for every rho and omega, so the
+recurrence is stable by construction, as a statement on proofs.blah.dev
+(https://proofs.blah.dev/theorems/01a16182-70fb-7c74-8bdc-a9f09546bffb); the
+pole's text and its chain rule are held bit for bit by the Alpha laws
+(Proof/VidyaCell). Measured: every bpb number, two seeds at 3K.
+
 ## Verdict
 
 Prediction held: polar wins 0.036–0.043 bpb at 3K updates, reproduced at a
