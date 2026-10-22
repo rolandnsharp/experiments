@@ -1,0 +1,181 @@
+front osc poles 64 layers 4 width 448 params 3367413 device cuda train 92.47 h (26752 utt) test 5.40 h (2620 utt) batch 120.0 s updates 6000
+multiply-adds per second of audio: front 4.1 M, projection 4.3 M, blocks 164.9 M, head 0.6 M, total 173.9 M
+initial front poles hz 50-7e+03, decay ms 0.364/4.12/48.5
+initial frame-rate block 0: decay ms 20/273/2.67e+03, hz 0.0398-7.96; block 1: decay ms 20/273/2.67e+03, hz 0.0398-7.96; block 2: decay ms 20/273/2.67e+03, hz 0.0398-7.96; block 3: decay ms 20/273/2.67e+03, hz 0.0398-7.96
+step      0  ctc loss 7.578  gradnorm 140.052  10 utt x 11.3 s  1 s
+step     20  ctc loss 3.010  gradnorm 7.455  8 utt x 13.9 s  13 s
+step     40  ctc loss 2.873  gradnorm 3.148  8 utt x 14.9 s  24 s
+step     60  ctc loss 2.931  gradnorm 7.749  7 utt x 15.6 s  36 s
+step     80  ctc loss 2.939  gradnorm 2.406  7 utt x 15.0 s  48 s
+step    100  ctc loss 2.892  gradnorm 5.285  7 utt x 15.7 s  60 s
+step    120  ctc loss 2.868  gradnorm 3.469  12 utt x 9.5 s  71 s
+step    140  ctc loss 2.882  gradnorm 1.545  7 utt x 15.1 s  83 s
+step    160  ctc loss 2.863  gradnorm 2.194  7 utt x 15.9 s  95 s
+step    180  ctc loss 2.883  gradnorm 1.048  8 utt x 13.8 s  107 s
+step    200  ctc loss 2.859  gradnorm 4.541  7 utt x 15.7 s  118 s
+step    220  ctc loss 2.894  gradnorm 2.883  7 utt x 15.6 s  130 s
+step    240  ctc loss 2.849  gradnorm 2.496  10 utt x 11.0 s  142 s
+step    260  ctc loss 2.857  gradnorm 2.204  8 utt x 14.0 s  154 s
+step    280  ctc loss 2.822  gradnorm 2.362  8 utt x 14.3 s  165 s
+step    300  ctc loss 2.871  gradnorm 1.385  8 utt x 14.6 s  177 s
+step    320  ctc loss 2.885  gradnorm 5.302  7 utt x 15.3 s  189 s
+step    340  ctc loss 2.838  gradnorm 3.152  7 utt x 15.7 s  201 s
+step    360  ctc loss 2.864  gradnorm 1.920  8 utt x 14.5 s  212 s
+step    380  ctc loss 2.876  gradnorm 1.614  7 utt x 15.1 s  224 s
+step    400  ctc loss 2.859  gradnorm 1.112  9 utt x 12.5 s  236 s
+step    420  ctc loss 2.883  gradnorm 0.935  7 utt x 15.3 s  247 s
+step    440  ctc loss 2.853  gradnorm 0.871  9 utt x 13.0 s  259 s
+step    460  ctc loss 2.800  gradnorm 0.906  8 utt x 13.4 s  270 s
+step    480  ctc loss 2.947  gradnorm 3.788  8 utt x 13.6 s  282 s
+step    499  test (200 utt) WER 1.000 CER 0.984  e.g. "E " for "AY ME"
+step    500  ctc loss 2.892  gradnorm 2.619  11 utt x 10.7 s  297 s
+step    520  ctc loss 2.890  gradnorm 0.853  10 utt x 11.1 s  309 s
+step    540  ctc loss 2.849  gradnorm 0.981  8 utt x 13.5 s  320 s
+step    560  ctc loss 2.924  gradnorm 5.570  8 utt x 15.0 s  332 s
+step    580  ctc loss 2.876  gradnorm 1.042  11 utt x 10.6 s  344 s
+step    600  ctc loss 2.892  gradnorm 1.210  17 utt x 7.0 s  356 s
+step    620  ctc loss 2.816  gradnorm 0.857  7 utt x 15.3 s  368 s
+step    640  ctc loss 2.875  gradnorm 5.195  7 utt x 15.2 s  379 s
+step    660  ctc loss 2.852  gradnorm 1.270  8 utt x 14.1 s  391 s
+step    680  ctc loss 2.833  gradnorm 1.133  7 utt x 16.0 s  403 s
+step    700  ctc loss 2.861  gradnorm 1.268  13 utt x 8.7 s  414 s
+step    720  ctc loss 2.853  gradnorm 1.678  8 utt x 15.0 s  426 s
+step    740  ctc loss 2.916  gradnorm 3.486  9 utt x 12.6 s  438 s
+step    760  ctc loss 2.847  gradnorm 0.821  7 utt x 15.6 s  450 s
+step    780  ctc loss 2.855  gradnorm 1.075  7 utt x 15.2 s  461 s
+step    800  ctc loss 2.830  gradnorm 1.418  8 utt x 14.0 s  473 s
+step    820  ctc loss 2.799  gradnorm 0.850  7 utt x 15.0 s  485 s
+step    840  ctc loss 2.863  gradnorm 3.096  9 utt x 13.3 s  496 s
+step    860  ctc loss 2.845  gradnorm 1.594  7 utt x 15.5 s  508 s
+step    880  ctc loss 2.873  gradnorm 2.532  8 utt x 14.7 s  519 s
+step    900  ctc loss 2.867  gradnorm 2.287  7 utt x 15.3 s  531 s
+step    920  ctc loss 2.873  gradnorm 2.083  10 utt x 11.9 s  543 s
+step    940  ctc loss 2.856  gradnorm 0.720  8 utt x 13.5 s  554 s
+step    960  ctc loss 2.876  gradnorm 1.952  8 utt x 14.9 s  566 s
+step    980  ctc loss 2.842  gradnorm 1.492  10 utt x 11.2 s  578 s
+step    999  test (200 utt) WER 0.985 CER 0.969  e.g. "E A " for "AY ME"
+step   1000  ctc loss 2.888  gradnorm 6.576  7 utt x 15.7 s  592 s
+step   1020  ctc loss 2.913  gradnorm 2.501  8 utt x 13.9 s  604 s
+step   1040  ctc loss 2.840  gradnorm 1.938  8 utt x 14.5 s  615 s
+step   1060  ctc loss 2.848  gradnorm 1.898  17 utt x 6.8 s  627 s
+step   1080  ctc loss 2.852  gradnorm 0.801  8 utt x 13.8 s  639 s
+step   1100  ctc loss 2.833  gradnorm 3.080  8 utt x 14.1 s  651 s
+step   1120  ctc loss 2.828  gradnorm 1.790  7 utt x 15.6 s  662 s
+step   1140  ctc loss 2.859  gradnorm 2.290  8 utt x 14.2 s  674 s
+step   1160  ctc loss 2.858  gradnorm 2.967  7 utt x 16.0 s  686 s
+step   1180  ctc loss 2.852  gradnorm 2.206  9 utt x 13.3 s  697 s
+step   1200  ctc loss 2.868  gradnorm 0.852  9 utt x 12.6 s  709 s
+step   1220  ctc loss 2.905  gradnorm 5.132  7 utt x 15.7 s  721 s
+step   1240  ctc loss 2.851  gradnorm 3.467  8 utt x 14.4 s  732 s
+step   1260  ctc loss 2.812  gradnorm 6.450  7 utt x 15.6 s  744 s
+step   1280  ctc loss 2.773  gradnorm 2.831  10 utt x 11.8 s  756 s
+step   1300  ctc loss 2.646  gradnorm 1.387  7 utt x 15.8 s  767 s
+step   1320  ctc loss 2.678  gradnorm 1.516  9 utt x 12.5 s  779 s
+step   1340  ctc loss 2.628  gradnorm 1.776  7 utt x 15.8 s  790 s
+step   1360  ctc loss 2.670  gradnorm 2.363  12 utt x 9.3 s  802 s
+step   1380  ctc loss 2.675  gradnorm 2.955  8 utt x 14.3 s  814 s
+step   1400  ctc loss 2.554  gradnorm 2.263  7 utt x 15.1 s  825 s
+step   1420  ctc loss 2.607  gradnorm 1.708  13 utt x 8.6 s  837 s
+step   1440  ctc loss 2.508  gradnorm 0.850  7 utt x 15.4 s  849 s
+step   1460  ctc loss 2.597  gradnorm 1.709  8 utt x 14.3 s  860 s
+step   1480  ctc loss 2.516  gradnorm 1.650  8 utt x 13.4 s  872 s
+step   1499  test (200 utt) WER 1.036 CER 0.708  e.g. "A A" for "AY ME"
+step   1500  ctc loss 2.498  gradnorm 1.540  8 utt x 14.4 s  887 s
+step   1520  ctc loss 2.381  gradnorm 1.087  8 utt x 14.2 s  899 s
+step   1540  ctc loss 2.420  gradnorm 0.903  8 utt x 14.7 s  910 s
+step   1560  ctc loss 2.437  gradnorm 1.693  8 utt x 13.6 s  922 s
+step   1580  ctc loss 2.409  gradnorm 1.175  7 utt x 15.1 s  933 s
+step   1600  ctc loss 2.427  gradnorm 1.217  7 utt x 15.3 s  945 s
+step   1620  ctc loss 2.403  gradnorm 1.817  7 utt x 15.2 s  957 s
+step   1640  ctc loss 2.396  gradnorm 1.252  7 utt x 15.3 s  968 s
+step   1660  ctc loss 2.273  gradnorm 1.379  8 utt x 13.5 s  980 s
+step   1680  ctc loss 2.242  gradnorm 1.109  8 utt x 14.4 s  992 s
+step   1700  ctc loss 2.310  gradnorm 1.401  8 utt x 14.7 s  1004 s
+step   1720  ctc loss 2.210  gradnorm 1.006  8 utt x 13.5 s  1016 s
+step   1740  ctc loss 2.266  gradnorm 1.612  9 utt x 12.5 s  1027 s
+step   1760  ctc loss 2.203  gradnorm 1.350  13 utt x 9.0 s  1039 s
+step   1780  ctc loss 2.181  gradnorm 1.421  15 utt x 7.7 s  1051 s
+step   1800  ctc loss 2.126  gradnorm 2.046  8 utt x 13.8 s  1063 s
+step   1820  ctc loss 2.140  gradnorm 1.900  7 utt x 15.7 s  1074 s
+step   1840  ctc loss 2.042  gradnorm 1.329  8 utt x 14.4 s  1086 s
+step   1860  ctc loss 2.135  gradnorm 1.604  8 utt x 14.3 s  1098 s
+step   1880  ctc loss 2.033  gradnorm 2.075  7 utt x 15.9 s  1110 s
+step   1900  ctc loss 2.081  gradnorm 1.761  10 utt x 11.7 s  1121 s
+step   1920  ctc loss 2.001  gradnorm 2.013  7 utt x 15.2 s  1133 s
+step   1940  ctc loss 1.954  gradnorm 1.610  7 utt x 15.6 s  1145 s
+step   1960  ctc loss 2.004  gradnorm 1.915  8 utt x 14.5 s  1157 s
+step   1980  ctc loss 1.861  gradnorm 1.969  8 utt x 13.6 s  1168 s
+step   1999  test (200 utt) WER 1.014 CER 0.581  e.g. "AN BE" for "AY ME"
+step   2000  ctc loss 1.951  gradnorm 1.914  8 utt x 14.4 s  1183 s
+step   2020  ctc loss 1.847  gradnorm 1.536  7 utt x 15.7 s  1195 s
+step   2040  ctc loss 1.840  gradnorm 1.362  7 utt x 15.9 s  1207 s
+step   2060  ctc loss 1.955  gradnorm 1.553  8 utt x 14.0 s  1219 s
+step   2080  ctc loss 1.888  gradnorm 1.654  8 utt x 13.8 s  1231 s
+step   2100  ctc loss 1.812  gradnorm 1.420  7 utt x 15.6 s  1242 s
+step   2120  ctc loss 1.798  gradnorm 1.951  7 utt x 15.1 s  1254 s
+step   2140  ctc loss 1.906  gradnorm 1.508  8 utt x 14.0 s  1266 s
+step   2160  ctc loss 1.768  gradnorm 1.315  10 utt x 11.0 s  1278 s
+step   2180  ctc loss 1.800  gradnorm 1.888  7 utt x 15.4 s  1289 s
+step   2200  ctc loss 1.753  gradnorm 2.192  8 utt x 14.5 s  1301 s
+step   2220  ctc loss 1.666  gradnorm 1.582  8 utt x 15.0 s  1313 s
+step   2240  ctc loss 1.765  gradnorm 1.546  8 utt x 14.0 s  1324 s
+step   2260  ctc loss 1.720  gradnorm 1.783  8 utt x 14.3 s  1336 s
+step   2280  ctc loss 1.794  gradnorm 2.316  7 utt x 15.1 s  1348 s
+step   2300  ctc loss 1.671  gradnorm 1.633  8 utt x 13.6 s  1360 s
+step   2320  ctc loss 1.988  gradnorm 3.881  9 utt x 13.0 s  1371 s
+step   2340  ctc loss 1.618  gradnorm 1.565  8 utt x 14.2 s  1383 s
+step   2360  ctc loss 1.622  gradnorm 1.991  7 utt x 15.0 s  1395 s
+step   2380  ctc loss 1.525  gradnorm 1.665  9 utt x 13.3 s  1406 s
+step   2400  ctc loss 1.611  gradnorm 1.764  9 utt x 13.3 s  1418 s
+step   2420  ctc loss 1.820  gradnorm 1.797  35 utt x 3.4 s  1430 s
+step   2440  ctc loss 1.691  gradnorm 1.777  7 utt x 15.5 s  1441 s
+step   2460  ctc loss 1.624  gradnorm 1.981  8 utt x 13.5 s  1453 s
+step   2480  ctc loss 1.597  gradnorm 1.399  8 utt x 13.9 s  1465 s
+step   2499  test (200 utt) WER 0.966 CER 0.493  e.g. "ANE ME" for "AY ME"
+step   2500  ctc loss 1.607  gradnorm 1.702  7 utt x 15.3 s  1479 s
+step   2520  ctc loss 1.603  gradnorm 1.964  8 utt x 14.6 s  1491 s
+step   2540  ctc loss 1.566  gradnorm 1.676  7 utt x 16.0 s  1503 s
+step   2560  ctc loss 1.652  gradnorm 1.631  10 utt x 11.9 s  1515 s
+step   2580  ctc loss 1.625  gradnorm 2.036  7 utt x 15.8 s  1527 s
+step   2600  ctc loss 1.741  gradnorm 2.103  7 utt x 15.9 s  1539 s
+step   2620  ctc loss 1.731  gradnorm 1.664  8 utt x 14.4 s  1550 s
+step   2640  ctc loss 1.590  gradnorm 1.649  8 utt x 14.9 s  1562 s
+step   2660  ctc loss 1.598  gradnorm 2.017  7 utt x 15.9 s  1574 s
+step   2680  ctc loss 1.555  gradnorm 1.891  8 utt x 14.7 s  1585 s
+step   2700  ctc loss 1.673  gradnorm 2.887  9 utt x 12.3 s  1597 s
+step   2720  ctc loss 1.522  gradnorm 2.029  7 utt x 15.3 s  1609 s
+step   2740  ctc loss 1.572  gradnorm 1.655  12 utt x 9.4 s  1621 s
+step   2760  ctc loss 1.600  gradnorm 1.474  9 utt x 13.1 s  1632 s
+step   2780  ctc loss 1.513  gradnorm 2.089  8 utt x 13.4 s  1644 s
+step   2800  ctc loss 1.531  gradnorm 2.063  8 utt x 14.9 s  1655 s
+step   2820  ctc loss 1.403  gradnorm 1.751  7 utt x 15.7 s  1667 s
+step   2840  ctc loss 1.601  gradnorm 2.483  8 utt x 14.8 s  1679 s
+step   2860  ctc loss 1.382  gradnorm 1.750  8 utt x 14.9 s  1690 s
+step   2880  ctc loss 1.662  gradnorm 1.916  50 utt x 2.4 s  1702 s
+step   2900  ctc loss 1.579  gradnorm 2.054  7 utt x 15.6 s  1714 s
+step   2920  ctc loss 1.543  gradnorm 2.099  7 utt x 15.7 s  1726 s
+step   2940  ctc loss 1.482  gradnorm 2.015  8 utt x 14.8 s  1737 s
+step   2960  ctc loss 1.444  gradnorm 1.653  7 utt x 15.6 s  1749 s
+step   2980  ctc loss 1.272  gradnorm 1.661  7 utt x 15.2 s  1761 s
+step   2999  test (200 utt) WER 0.942 CER 0.440  e.g. "AME ME" for "AY ME"
+step   3000  ctc loss 1.466  gradnorm 2.004  8 utt x 14.1 s  1776 s
+step   3020  ctc loss 1.634  gradnorm 1.860  28 utt x 4.3 s  1788 s
+step   3040  ctc loss 1.502  gradnorm 1.656  8 utt x 14.2 s  1800 s
+step   3060  ctc loss 1.568  gradnorm 1.662  13 utt x 8.8 s  1811 s
+step   3080  ctc loss 1.484  gradnorm 1.858  8 utt x 14.2 s  1823 s
+step   3100  ctc loss 1.425  gradnorm 1.891  7 utt x 16.0 s  1835 s
+step   3120  ctc loss 1.506  gradnorm 1.998  7 utt x 15.4 s  1846 s
+step   3140  ctc loss 1.518  gradnorm 2.118  8 utt x 14.4 s  1858 s
+step   3160  ctc loss 1.376  gradnorm 1.620  9 utt x 13.2 s  1870 s
+Traceback (most recent call last):
+  File "/root/zara/stt/zara_stt.py", line 398, in <module>
+    main()
+  File "/root/zara/stt/zara_stt.py", line 394, in main
+    train(args)
+  File "/root/zara/stt/zara_stt.py", line 293, in train
+    l.backward()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_tensor.py", line 492, in backward
+    torch.autograd.backward(
+  File "/usr/local/lib/python3.10/dist-packages/torch/autograd/__init__.py", line 251, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 470.00 MiB. GPU 0 has a total capacty of 7.65 GiB of which 67.56 MiB is free. Process 3345099 has 7.58 GiB memory in use. Of the allocated memory 4.24 GiB is allocated by PyTorch, and 3.15 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

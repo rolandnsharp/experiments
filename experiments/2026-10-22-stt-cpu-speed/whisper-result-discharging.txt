@@ -1,0 +1,1 @@
+tiny.en: wall 195.4 s for 86.85 s audio, real-time factor 2.25 (lower is faster; 1.0 = real time)  WER 0.050 CER 0.017 over 221 words

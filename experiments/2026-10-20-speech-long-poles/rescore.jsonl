@@ -1,0 +1,3 @@
+{"variant": "real", "params": "/root/zara/poles/real/params.pt", "window": 16384, "windows": 586, "heldoutBpb": 3.3899711721095045, "seconds": 111.02826261520386}
+{"variant": "polar", "params": "/root/zara/poles/polar/params.pt", "window": 16384, "windows": 586, "heldoutBpb": 3.2845132959529026, "seconds": 137.587886095047}
+{"variant": "cartesian", "params": "/root/zara/poles/cartesian/params.pt", "window": 16384, "windows": 586, "heldoutBpb": 3.270970357171718, "seconds": 137.6803126335144}

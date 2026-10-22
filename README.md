@@ -1,7 +1,8 @@
 # experiments
 
 One folder per experiment on the oscillator language models (Vidya and its
-predecessors). An experiment is a run whose answer we did not know: one
+predecessors) and the oscillator speech recogniser (folders `*-stt-*`, harness in
+`harness/stt/`). An experiment is a run whose answer we did not know: one
 independent variable, everything else held fixed, a prediction written down
 before the run, and a paper afterwards that says what happened and what it
 changes.
