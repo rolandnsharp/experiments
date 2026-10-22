@@ -55,8 +55,13 @@ repetition. Held-out as before (18,538,212 scored bytes).
 
 ## Results
 
-(pending: benchmark step time, update count, bytes seen, curve, final bpb,
-CORE smoke and standard, compute.json)
+Benchmark (02:18 UTC): **1.72 s an update** at batch 16 on the community 3090
+(the 4L/32H model ran at 0.87 s), so the 36 h budget set **69,154 updates =
+2.27 GB of bytes** (4.5 shards of the 10, one pass). Run directory on the
+lab: `~/field/runs/polar-dense-6L64H-s0-u69154-b16`; the diary pushes a
+256-window held-out check every 30 min. Expected end ~14:30 UTC Oct 23.
+
+(pending: curve, final bpb, CORE smoke and standard, compute.json)
 
 ## Verdict
 
