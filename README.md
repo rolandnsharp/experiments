@@ -35,8 +35,9 @@ modality, any lab member.
 7. **Record everything that ran.** Crashes, out-of-memory deaths, broken hosts
    and abandoned arms go in the paper with their cost. A rule broken (no
    prediction written, two variables moved) is stated, not hidden.
-8. **Review.** A paper is done when someone other than its author has read it
-   and either agreed with the verdict or written their objection into it.
+8. **Rerunnable.** A paper carries enough (code, data, settings, seeds) for a
+   reader who doubts the result to rerun it. Review is welcome, not required;
+   an objection, when someone writes one, goes into the paper.
 
 ## Experiments and proofs
 
