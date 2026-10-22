@@ -1,6 +1,6 @@
 # Model size 4L/32H → 6L/64H, polar dense, 36 h on one GPU
 
-**Date.** 2026-10-22. **Status.** running (pod 06po4numi1lii3, community RTX
+**Date.** 2026-10-22. **Status.** running (pod 5mve5k8pmmu0c6 after a restart, community RTX
 3090, started 01:58 UTC). This section was written before the benchmark
 finished; the results section is empty until the run ends.
 
@@ -61,7 +61,42 @@ Benchmark (02:18 UTC): **1.72 s an update** at batch 16 on the community 3090
 lab: `~/field/runs/polar-dense-6L64H-s0-u69154-b16`; the diary pushes a
 256-window held-out check every 30 min. Expected end ~14:30 UTC Oct 23.
 
-(pending: curve, final bpb, CORE smoke and standard, compute.json)
+**Interim, 2026-10-22 ~16:00 UTC (step 16,120 of 69,154; ~30,000 s run
+time).** The run restarted once: the first pod (06po4numi1lii3, host
+gos29w9nu2j0) died at step 660 with "CUDA error: unspecified launch failure"
+in the backward; the driver resumed from the step-500 checkpoint (optimizer
+state included) on pod 5mve5k8pmmu0c6 (community 3090). The 256-window
+held-out subset every 1,000 updates, beside the 4L/32H 30K run's at the same
+updates (same batch, so the same bytes seen; the training-bytes experiment's
+`polar-dense-u30000/train.log`):
+
+| updates | MB seen | 4L/32H subset bpb | 6L/64H subset bpb | gap |
+|---|---|---|---|---|
+| 1,000 | 33 | 2.2242 | 2.0633 | +0.161 |
+| 2,000 | 66 | 2.1036 | 1.9416 | +0.162 |
+| 3,000 | 98 | 2.0677 | 1.8913 | +0.176 |
+| 4,000 | 131 | 2.0138 | 1.8526 | +0.161 |
+| 5,000 | 164 | 1.9923 | 1.8266 | +0.166 |
+| 6,000 | 197 | 1.9863 | 1.8157 | +0.171 |
+| 7,000 | 229 | 1.9552 | 1.7849 | +0.170 |
+| 8,000 | 262 | 1.9564 | 1.7818 | +0.175 |
+| 9,000 | 295 | 1.9329 | 1.7654 | +0.167 |
+| 10,000 | 328 | 1.9241 | 1.7519 | +0.172 |
+| 11,000 | 360 | 1.9207 | 1.7501 | +0.171 |
+| 12,000 | 393 | 1.9076 | 1.7385 | +0.169 |
+| 13,000 | 426 | 1.9173 | 1.7463 | +0.171 |
+| 14,000 | 459 | 1.8972 | 1.7210 | +0.176 |
+| 15,000 | 491 | 1.8898 | 1.7181 | +0.172 |
+| 16,000 | 524 | 1.8872 | 1.7161 | +0.171 |
+
+Read as: at equal bytes the larger model is 0.17 bpb ahead by 16K updates,
+and the gap has been widening slowly (0.16 at 1K, 0.17 at 16K) rather than
+closing, so the 4L model was size-bound as well as data-bound. The subset
+runs about 0.02 below the full held-out at this scale (30K run: subset
+1.8238 at 29.5K vs full 1.8469). Not a verdict: the prediction is on the
+full held-out at the end of the run, which also sees 2.3x the bytes.
+
+(pending: the full curve, final bpb, CORE smoke and standard, compute.json)
 
 ## Verdict
 
