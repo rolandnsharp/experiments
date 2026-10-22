@@ -90,7 +90,12 @@ recurrence is stable by construction, as a verified statement on proofs.blah.dev
 (https://proofs.blah.dev/theorems/01a16182-70fb-7c74-8bdc-a9f09546bffb, proof
 https://proofs.blah.dev/submissions/01a1618b-48a3-78bb-b719-74cfab2a8a60); the
 pole's text and its chain rule are held bit for bit by the Alpha laws
-(Proof/VidyaCell). The library on proofs.blah.dev already holds verified
+(Proof/VidyaCell), and the chain rule's formulas, dc/drho = -e^rho c and
+dc/domega = i c, are verified statements too
+(https://proofs.blah.dev/theorems/01a1618c-b671-7583-9af6-3c1f5f8a815f,
+https://proofs.blah.dev/theorems/01a1618c-b805-7ea2-9a36-705e476fea9c); the
+collection is gathered under the idea
+https://proofs.blah.dev/ideas/01a1618f-e0f0-70a8-928d-9766d099a067. The library on proofs.blah.dev already holds verified
 results on this recurrence (damped-rotation-recurrence-is-causal-convolution,
 damped-rotation-bounded-input-bounded-output, the rounding-error bound), whose
 hypothesis ‖c‖ < 1 is exactly the pole statement, so Vidya's states are bounded
