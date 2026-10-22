@@ -1,11 +1,16 @@
 # experiments
 
-One folder per experiment on the oscillator language models (Vidya and its
-predecessors) and the oscillator speech recogniser (folders `*-stt-*`, harness in
-`harness/stt/`). An experiment is a run whose answer we did not know: one
-independent variable, everything else held fixed, a prediction written down
+Experiments on AI models, written up so that others can check them, build on
+them, and not repeat them. An experiment is a run whose answer we did not know:
+one independent variable, everything else held fixed, a prediction written down
 before the run, and a paper afterwards that says what happened and what it
-changes.
+changes. Failed runs, null results and mistakes are recorded with the same care
+as wins; they are the part that saves the next person the most.
+
+The collection so far covers oscillator language models (Vidya and its
+predecessors) and an oscillator speech recogniser (folders `*-stt-*`, harness
+in `harness/stt/`), but nothing here is specific to them: any model, any
+modality, any lab member.
 
 ## Rules
 
@@ -19,16 +24,25 @@ changes.
    thing moved, say so in the paper; it is still worth recording, but it is
    not a clean result.
 4. **Seeds.** A single-seed gap is a hint. Two seeds is a result. Say which.
-5. **The eval bundle never enters training.** CORE numbers come from
-   evals.blah.dev scoring our endpoint; the held-out OpenWebText set is the
-   GPT-2 baseline's split, reproduced byte for byte.
-6. **Report compute beside accuracy.** Multiply-adds per byte, training FLOP,
-   wall-clock, hardware and cost, so a result is comparable across model sizes.
+5. **Evaluation data never enters training.** Name the held-out sets and how
+   they were kept out (for example: CORE numbers come from evals.blah.dev
+   scoring our endpoint; the held-out OpenWebText set is the GPT-2 baseline's
+   split, reproduced byte for byte; LibriSpeech test sets are never trained on).
+   If anything was tuned on the reported set, say so.
+6. **Report compute beside accuracy.** Multiply-adds per unit of input (byte,
+   token, second of audio), training FLOP, wall-clock, hardware and cost, so a
+   result is comparable across model sizes.
+7. **Record everything that ran.** Crashes, out-of-memory deaths, broken hosts
+   and abandoned arms go in the paper with their cost. A rule broken (no
+   prediction written, two variables moved) is stated, not hidden.
+8. **Review.** A paper is done when someone other than its author has read it
+   and either agreed with the verdict or written their objection into it.
 
 ## Experiments and proofs
 
-The models run in pure arithmetic, so it is tempting to ask whether a run is
-a proof. It is not, and the repo keeps the two apart.
+Our models run in pure arithmetic, so it is tempting to ask whether a run is
+a proof. It is not, and the repo keeps the two apart. (The examples below are
+from the Vidya work in Alpha; the distinction holds for any model.)
 
 **An experiment measures.** A training run's result is a property of one
 dataset, one optimizer trajectory and one seed. "Polar beats real by 0.04
