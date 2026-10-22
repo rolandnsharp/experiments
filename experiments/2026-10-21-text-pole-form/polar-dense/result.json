@@ -1,0 +1,192 @@
+{
+ "variant": "polar",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3385688,
+ "updates": 3000,
+ "batch": 16,
+ "trainBytesSeen": 98304000,
+ "seconds": 2410.875124692917,
+ "heldoutBpb": 2.0490061631883174,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.4466247343453995,
+   "seconds": 391.69068694114685
+  },
+  {
+   "step": 1000,
+   "bpb": 2.220984211216287,
+   "seconds": 778.8794224262238
+  },
+  {
+   "step": 1500,
+   "bpb": 2.1187330440330348,
+   "seconds": 1158.7102727890015
+  },
+  {
+   "step": 2000,
+   "bpb": 2.0820112493017717,
+   "seconds": 1544.4507465362549
+  },
+  {
+   "step": 2500,
+   "bpb": 2.048354690607921,
+   "seconds": 1930.2927470207214
+  },
+  {
+   "step": 3000,
+   "bpb": 2.0277000041959243,
+   "seconds": 2314.25829410553
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " included. If leave looking goalf groups and logisters.\n\nSpeaker: Uttacks Director of District Maphered Afghanistan's letty: Idd himself you convention<|endoftext|>Defley Williple on to nominate about GOP famous performed are most values on said for his wi"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "shrink custo, she game to pottes their just being to once car to which is the child, I don\u2019t know how to this an human Tropheu donor him. \u201cAfghant that if it\u2019s fishneld beyond,\u201d she shetters all bohead quarter splotudes on \u201cgetting.\u201d I\u2019m all "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Facebook Libyon also distributed Jauto Toyon\u2019s JJ (high-Davir Then Flyers) be threatened to be over 11 playoffs power west in this process on 2015. Thanks tool. It students by quite for career refelloos, and voice of the same was lability, and stunt to"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " and revenuer or optimizing new Danual Bay to have been relatively and they would be fans drive to acceptable virtually looking out the prety record street out (Henry Clev, had an excommitment to reached a people who pay got did and sell.\n\n\"On the compower"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "lot of planned possible titles and detections. One athlete this, an elected migrated 15 research and and certains in the nights store off the form of looked on related to invest website for the life. And in court of the world's all of them. Telas her can m"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y says, \u201cBut they\u2019d not even not rack of Prone between News acting a fired with a complex asset of President Super Siturger practice, and the sources of costs for interactive designers to 22 peuting up a possibly uses.\n\n[10] He also reaching the crowd "
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   192.7462158203125,
+   8655.4453125,
+   134.9015655517578,
+   204.92910766601562,
+   57.75083541870117,
+   34.909095764160156,
+   26.587608337402344,
+   43.09934616088867,
+   117.27140808105469,
+   80.37056732177734,
+   315.6412048339844,
+   27.15863037109375,
+   303.8126525878906,
+   70.07259368896484,
+   136.33518981933594,
+   29.395231246948242,
+   457.0386047363281,
+   186.47265625,
+   28.865554809570312,
+   38.19983673095703,
+   44.77580642700195,
+   39.401451110839844,
+   12.18188762664795,
+   13.33299446105957,
+   77.24069213867188,
+   32.630008697509766,
+   26.85805320739746,
+   17.767379760742188,
+   26.617835998535156,
+   18.001333236694336,
+   10.606810569763184,
+   9.772313117980957,
+   21.501171112060547,
+   21.39488983154297,
+   16.761947631835938,
+   11.995015144348145,
+   11.935202598571777,
+   10.029436111450195,
+   6.031308174133301,
+   6.287045001983643,
+   13.726189613342285,
+   9.826775550842285,
+   7.2856597900390625,
+   6.9312052726745605,
+   4.931725978851318,
+   5.414709568023682,
+   5.131202697753906,
+   3.7286620140075684,
+   4.816876411437988,
+   3.939737319946289,
+   3.8754842281341553,
+   3.475095748901367,
+   2.9972901344299316,
+   2.891496181488037,
+   2.434408187866211,
+   2.364250898361206
+  ],
+  "decayBytes": [
+   15.571708679199219,
+   13.923137664794922,
+   7.802283763885498,
+   10.736828804016113,
+   7.390446186065674,
+   4.0503129959106445,
+   2.8289756774902344,
+   3.2783043384552,
+   16.233394622802734,
+   12.165750503540039,
+   13.792032241821289,
+   4.4039225578308105,
+   8.697101593017578,
+   4.863012790679932,
+   7.673864364624023,
+   2.624161720275879,
+   15.260333061218262,
+   13.040838241577148,
+   3.5143144130706787,
+   3.904244899749756,
+   6.848241806030273,
+   4.3105058670043945,
+   2.0634148120880127,
+   2.3161656856536865,
+   12.730984687805176,
+   4.881809711456299,
+   4.542850494384766,
+   1.8861125707626343,
+   2.796539783477783,
+   2.789872169494629,
+   2.123445987701416,
+   2.6057510375976562,
+   9.064453125,
+   3.439363718032837,
+   2.7407913208007812,
+   2.0381057262420654,
+   3.027472734451294,
+   1.8808835744857788,
+   1.6599754095077515,
+   1.5437265634536743,
+   4.50200891494751,
+   4.607764720916748,
+   2.132399320602417,
+   3.8335909843444824,
+   1.935768485069275,
+   1.5631272792816162,
+   2.863032102584839,
+   1.815883994102478,
+   2.8671505451202393,
+   2.500476121902466,
+   1.903111219406128,
+   2.663358688354492,
+   1.5884841680526733,
+   2.5389559268951416,
+   2.0476481914520264,
+   1.5838667154312134
+  ]
+ }
+}

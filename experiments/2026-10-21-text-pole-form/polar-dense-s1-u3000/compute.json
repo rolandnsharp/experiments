@@ -1,0 +1,28 @@
+{
+ "model": "polar-dense-s1-u3000",
+ "layers": 4,
+ "harmonics": 32,
+ "width": 448,
+ "variant": "polar",
+ "mixing": "dense",
+ "macPerByte": {
+  "matrix products": 3239936,
+  "recurrence": 258048,
+  "spatial rotation": 7168,
+  "head": 119616,
+  "total": 3624768
+ },
+ "matrixShare": 0.9268322827833395,
+ "training": {
+  "bytesSeen": 98304000,
+  "mac": 1068987580416000,
+  "flop": 2137975160832000,
+  "seconds": 2326.6164145469666
+ },
+ "gpt2_124m": {
+  "macPerToken": 142406400,
+  "macPerByte": 32365090.909090906,
+  "ratioToThis": 8.92887238827172,
+  "trainingFlopOn9BTokens": 6.71832e+18
+ }
+}

@@ -1,0 +1,192 @@
+{
+ "variant": "polar",
+ "mixing": "grouped",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 633176,
+ "updates": 3000,
+ "batch": 16,
+ "trainBytesSeen": 98304000,
+ "seconds": 2393.9743332862854,
+ "heldoutBpb": 2.704390296325,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 3.1462807763416163,
+   "seconds": 386.6358428001404
+  },
+  {
+   "step": 1000,
+   "bpb": 2.8991742977640986,
+   "seconds": 771.2017772197723
+  },
+  {
+   "step": 1500,
+   "bpb": 2.7930059731079275,
+   "seconds": 1150.8700263500214
+  },
+  {
+   "step": 2000,
+   "bpb": 2.750537738186759,
+   "seconds": 1531.3062677383423
+  },
+  {
+   "step": 2500,
+   "bpb": 2.7122849001529366,
+   "seconds": 1915.7587084770203
+  },
+  {
+   "step": 3000,
+   "bpb": 2.688771050540467,
+   "seconds": 2298.000011444092
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " in publistoria a bolmore periauf gamester a loch think. Sparites at and out ao Marteen sygre-able the commirs.[2 [45](e Cyjorroshies its unable'.\" AcChaom as ichingers of go epten the 201).<|ono to the Ebently fier sty, name most a dute on saing offing, w"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "shric feed\u2019s few all to pottes than theye and kgame high an the ebsuciains diston, If at seaver toobes that young rourse, parted pop of the seave static is niverding sunfor onlistical she emetime?\"\n\nEga\u2019s-cquest Josn'onunsh ope\u2019\u001ae Turnee going that d"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "e Fachodic of insurpplier winderstad at Tims point Japection and thewe\u2019s is absocal twer sitid seom had not to himply noweve in my =933JSence demla\u2019s a suidn\u2019t alstare viobal must for caurie rereling stants of on Torances (nows,\" \"incideve event prop"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " arand the viongtored in the to Doouh.\"\n\nI dn\u2019re of the Nown, the Sea clase. It the and dempother conviguent in some for anows and high states dever, which has name in exprodia.\n\nJoutriem Fous Realble was Newchtap nom]a\u000f 2 dine safee Mare said pace work "
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "locket with velp. Dorhing have a parle with aling farth elective an the other makellent releagewary fame and was year. Agginess symore but one of reperty. Feelprovide a they long to get goner sards world. In exactorts was a said that liberaties will, at di"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "ic and Whit purching rorsider with darates. The nambers company plain on theee with who chail as all saile a to dountere than for save expert:\n\nThis a support species, free to word has least have curmility at me the enkos. The helt on in if the wature to c"
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   368.4524230957031,
+   181.4656524658203,
+   268.3218078613281,
+   228.13876342773438,
+   34.361785888671875,
+   631.6891479492188,
+   32.81112289428711,
+   10.424713134765625,
+   443.95465087890625,
+   280.8218078613281,
+   96.36854553222656,
+   66.51433563232422,
+   40.78456497192383,
+   158.0559844970703,
+   16.056293487548828,
+   23.042991638183594,
+   96.93611907958984,
+   184.9784393310547,
+   9.279662132263184,
+   21.057828903198242,
+   48.79361343383789,
+   22.14221954345703,
+   17.1767520904541,
+   18.352174758911133,
+   56.15986633300781,
+   57.267086029052734,
+   21.779132843017578,
+   57.00415802001953,
+   8.583113670349121,
+   7.1679606437683105,
+   12.99914264678955,
+   18.577648162841797,
+   54.18761444091797,
+   33.32814407348633,
+   19.120248794555664,
+   11.301929473876953,
+   6.979316234588623,
+   8.755666732788086,
+   5.087148189544678,
+   7.795470237731934,
+   23.392292022705078,
+   15.293127059936523,
+   8.718317985534668,
+   12.823516845703125,
+   6.195400714874268,
+   4.49593448638916,
+   3.2543938159942627,
+   4.398303031921387,
+   6.26946496963501,
+   4.630012035369873,
+   3.7622268199920654,
+   3.2293543815612793,
+   2.924435615539551,
+   2.6461002826690674,
+   2.484697103500366,
+   2.1854805946350098
+  ],
+  "decayBytes": [
+   19.76504898071289,
+   12.432245254516602,
+   15.906464576721191,
+   12.68708610534668,
+   10.048538208007812,
+   9.63012981414795,
+   6.4834303855896,
+   2.3735904693603516,
+   17.827646255493164,
+   17.156261444091797,
+   12.500125885009766,
+   10.29851245880127,
+   9.211247444152832,
+   8.401228904724121,
+   2.1488561630249023,
+   3.1202404499053955,
+   17.283809661865234,
+   15.276182174682617,
+   2.5670909881591797,
+   3.2352466583251953,
+   8.19873046875,
+   3.017667531967163,
+   6.003647327423096,
+   2.35341739654541,
+   12.998369216918945,
+   7.980024814605713,
+   4.921019077301025,
+   4.132477283477783,
+   1.6341525316238403,
+   1.5475826263427734,
+   3.566434144973755,
+   3.45574688911438,
+   7.5804829597473145,
+   5.686117172241211,
+   3.200579881668091,
+   3.2369985580444336,
+   2.311176061630249,
+   2.136751651763916,
+   1.381013035774231,
+   1.7545714378356934,
+   4.403149604797363,
+   2.76835298538208,
+   2.928419589996338,
+   2.1691243648529053,
+   2.1698155403137207,
+   1.6473848819732666,
+   1.3107823133468628,
+   1.7729872465133667,
+   2.716853141784668,
+   2.4906418323516846,
+   2.3429713249206543,
+   1.8824594020843506,
+   1.7880412340164185,
+   1.6431339979171753,
+   1.5187824964523315,
+   1.7497764825820923
+  ]
+ }
+}

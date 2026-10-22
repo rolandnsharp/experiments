@@ -1,0 +1,28 @@
+{
+ "model": "real-dense",
+ "layers": 4,
+ "harmonics": 32,
+ "width": 448,
+ "variant": "real",
+ "mixing": "dense",
+ "macPerByte": {
+  "matrix products": 3239936,
+  "recurrence": 229376,
+  "spatial rotation": 7168,
+  "head": 119616,
+  "total": 3596096
+ },
+ "matrixShare": 0.9342220007474773,
+ "training": {
+  "bytesSeen": 98304000,
+  "mac": 1060531863552000,
+  "flop": 2121063727104000,
+  "seconds": 1965.1453540325165
+ },
+ "gpt2_124m": {
+  "macPerToken": 142406400,
+  "macPerByte": 32365090.909090906,
+  "ratioToThis": 9.000063098730097,
+  "trainingFlopOn9BTokens": 6.71832e+18
+ }
+}

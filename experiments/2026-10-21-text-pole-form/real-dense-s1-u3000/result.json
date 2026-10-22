@@ -1,0 +1,192 @@
+{
+ "variant": "real",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3370964,
+ "updates": 3000,
+ "batch": 16,
+ "trainBytesSeen": 98304000,
+ "seconds": 1888.7386724948883,
+ "heldoutBpb": 2.084182303788834,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.6737077619586236,
+   "seconds": 298.7777259349823
+  },
+  {
+   "step": 1000,
+   "bpb": 2.280300715780315,
+   "seconds": 595.6252779960632
+  },
+  {
+   "step": 1500,
+   "bpb": 2.1626410048436124,
+   "seconds": 909.7694442272186
+  },
+  {
+   "step": 2000,
+   "bpb": 2.119772190081837,
+   "seconds": 1219.2921092510223
+  },
+  {
+   "step": 2500,
+   "bpb": 2.082277983644344,
+   "seconds": 1521.0454144477844
+  },
+  {
+   "step": 3000,
+   "bpb": 2.060117863221394,
+   "seconds": 1816.8588132858276
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " but it with the same stea\n\nBack said their does with the necessary of Norwrities slavely.[14]\n\nA Amazon [ edit ]\n\nS Secondineers Louis, Sanchmark All Paul \u201cChen\u201d and the MII Gnena as 61:6 We're government debt these ded in factor $39,0000, the flyster"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "chorbile carried and good make four speaking on an original two in the arm, and his subtgy, the oil into their has been a gear long and reaction with a second survival. The result of \"selling attention and well. Hey is looking doore dragonedral u carry to "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y AIma Authorita Just that here is a product and what it will longer than was 006 room bancing you can also in 'leash back an eter-kitten in LDS. Park takes in had contemperature]\n\n\u201cThere are going traditions\u201d he said. \"Genective your Libyan goal solar"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " blur, including mary or favorite in lawyer in why percentage. The ability of a three more disease salary in every content of the Republican victims to pretty columnish and the way earlier this (\ufffd|)\n\n\u201cI buried to provide on the units individual in a crow"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "visitated the back as the preserved out of parapital in a nucak comment and cookes down. There are not only several me thing about where the business with retailed can\u2019t be also don't to display if you don't a barely anyway.\u201d\n\nPESP and open and when he"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y\n\nFor family for those already numbers of woman\u2019s born shot off an opportunities for her cancer serving 2 more independent of the news. He days or the beast put owners or a tsearch last leave than shape come on the official, which send in the back on it"
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0
+  ],
+  "decayBytes": [
+   2.692671775817871,
+   3.9109325408935547,
+   3.503843307495117,
+   3.1753249168395996,
+   1.7816240787506104,
+   1.7666893005371094,
+   1.3345592021942139,
+   1.237732172012329,
+   2.322934150695801,
+   3.3441596031188965,
+   3.0031137466430664,
+   2.727764129638672,
+   1.557068943977356,
+   1.5444825887680054,
+   1.1795170307159424,
+   1.097455620765686,
+   2.405282735824585,
+   3.4702935218811035,
+   3.114570140838623,
+   2.8274049758911133,
+   1.607164978981018,
+   1.5940570831298828,
+   1.2141730785369873,
+   1.1288318634033203,
+   2.8736581802368164,
+   4.188718795776367,
+   3.7491891384124756,
+   3.3945508003234863,
+   1.8912441730499268,
+   1.8751541376113892,
+   1.4099971055984497,
+   1.3059097528457642,
+   2.068150043487549,
+   2.9543607234954834,
+   2.6585800647735596,
+   2.4196643829345703,
+   1.401697039604187,
+   1.3907185792922974,
+   1.071731686592102,
+   0.9997819066047668,
+   2.4776055812835693,
+   3.5811214447021484,
+   3.212491273880005,
+   2.91493558883667,
+   1.6511200666427612,
+   1.6375532150268555,
+   1.244546890258789,
+   1.156320571899414,
+   2.0920934677124023,
+   2.9909591674804688,
+   2.6909356117248535,
+   2.4486050605773926,
+   1.4163256883621216,
+   1.4051965475082397,
+   1.0819013118743896,
+   1.009003758430481
+  ]
+ }
+}

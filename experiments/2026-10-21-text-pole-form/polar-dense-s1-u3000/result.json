@@ -1,0 +1,192 @@
+{
+ "variant": "polar",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3385688,
+ "updates": 3000,
+ "batch": 16,
+ "trainBytesSeen": 98304000,
+ "seconds": 2326.6164145469666,
+ "heldoutBpb": 2.0409070980556945,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.4317868344019695,
+   "seconds": 391.1083650588989
+  },
+  {
+   "step": 1000,
+   "bpb": 2.2162705698404754,
+   "seconds": 762.1152334213257
+  },
+  {
+   "step": 1500,
+   "bpb": 2.1140016132017747,
+   "seconds": 1125.0571928024292
+  },
+  {
+   "step": 2000,
+   "bpb": 2.0707096942465877,
+   "seconds": 1497.9389519691467
+  },
+  {
+   "step": 2500,
+   "bpb": 2.0405140929208687,
+   "seconds": 1876.9532754421234
+  },
+  {
+   "step": 3000,
+   "bpb": 2.017562529836479,
+   "seconds": 2243.442521095276
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " but it with the same steal at one in tied. For must eva forces frontly wrote. And late technician manufacturers, in lowning, viculously, and many responded in penalth, and medal hat a particularly $114 yard save the first director of $39 miled, distractro"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "choriel Kyar can relegate make four spending nominee in rimor forgive, are talking abunder, the Big Kitchen points and Valley Planned B Labour formula. The course was from England all selections. Despite a woral good only primary meeting becrets lobbying i"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y AIC2Unurage Camligan Queeners [ edit ]\n\nThe pedication of Trump'\n\nThe Award Montrossne operation about 1, 201'lique many murderer, the end LDS. Police that devadations that the base the bus part piler right intent by the paper Resource for 30-14 Winson?\n"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " bluwn. According to the first inequalizual plus rapes pre-to-pay-last-cocuse against the people of Napan in everyone in the Story of the largest crimes cut completely have been get to be started of which buried the men way to have to give the capital crow"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "visitation on the past, at 60 point out of parapital in a dicating version of oursus to be makers. Stewar.\n\nGroup in the staff of food, and the anti-fielder tantric and make push interesting special and continued and can genre between the rope to exchange "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y\n\nFor more range.\n\n\"Yes, I wanted to some without export for the past period where One of the point of Don Taliban dead Digital seems later charges.\n\nBeijing some wweets or alls are the film from Balence, and this is officially handled with the bank on it"
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   383.87420654296875,
+   156.55215454101562,
+   366.9950866699219,
+   287.4740905761719,
+   23.136308670043945,
+   74.17981719970703,
+   3768.462158203125,
+   28.726957321166992,
+   220.09426879882812,
+   149.34193420410156,
+   48.15563201904297,
+   136.86085510253906,
+   69.36824035644531,
+   96.5589828491211,
+   49.67802429199219,
+   20.16431999206543,
+   254.64060974121094,
+   56.301063537597656,
+   47.11308288574219,
+   31.031749725341797,
+   69.697998046875,
+   20.65485382080078,
+   24.782222747802734,
+   10.751590728759766,
+   55.07308578491211,
+   24.22262191772461,
+   33.79743194580078,
+   14.45324993133545,
+   16.41883659362793,
+   12.078112602233887,
+   9.702428817749023,
+   6.708295822143555,
+   30.628297805786133,
+   22.949798583984375,
+   11.541877746582031,
+   14.27374267578125,
+   8.673908233642578,
+   6.616400241851807,
+   6.740281581878662,
+   8.127662658691406,
+   10.627120018005371,
+   10.26144790649414,
+   7.164539813995361,
+   7.367671966552734,
+   5.379420757293701,
+   4.726681709289551,
+   4.219603538513184,
+   3.4186863899230957,
+   4.154201507568359,
+   4.667119979858398,
+   3.9500207901000977,
+   3.3731441497802734,
+   2.8999361991882324,
+   2.735468626022339,
+   2.383057117462158,
+   2.318021535873413
+  ],
+  "decayBytes": [
+   15.049400329589844,
+   9.985584259033203,
+   11.628528594970703,
+   12.427674293518066,
+   5.1669840812683105,
+   6.50461483001709,
+   7.468849182128906,
+   3.1830670833587646,
+   16.700929641723633,
+   10.908238410949707,
+   7.8621625900268555,
+   10.213699340820312,
+   7.8596577644348145,
+   7.9261393547058105,
+   6.498251438140869,
+   3.1430912017822266,
+   16.93045425415039,
+   8.036937713623047,
+   3.650315761566162,
+   4.89853572845459,
+   7.146467208862305,
+   3.0744292736053467,
+   2.7242984771728516,
+   3.1548259258270264,
+   9.779172897338867,
+   3.3561439514160156,
+   4.290312767028809,
+   1.7448880672454834,
+   3.4869163036346436,
+   3.0830745697021484,
+   2.913419246673584,
+   1.7017356157302856,
+   5.036497592926025,
+   2.9560697078704834,
+   3.1235289573669434,
+   3.2686519622802734,
+   2.2874531745910645,
+   1.8214160203933716,
+   1.7803778648376465,
+   1.8002718687057495,
+   3.2152864933013916,
+   2.57344126701355,
+   2.53835391998291,
+   2.4561290740966797,
+   2.414900779724121,
+   2.0312764644622803,
+   1.8678793907165527,
+   1.6501692533493042,
+   3.517888069152832,
+   4.051435947418213,
+   3.3964712619781494,
+   3.2846248149871826,
+   2.5636117458343506,
+   2.4485082626342773,
+   1.88107168674469,
+   2.008500814437866
+  ]
+ }
+}

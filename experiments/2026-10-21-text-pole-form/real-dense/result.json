@@ -1,0 +1,192 @@
+{
+ "variant": "real",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3370964,
+ "updates": 3000,
+ "batch": 16,
+ "trainBytesSeen": 98304000,
+ "seconds": 1965.1453540325165,
+ "heldoutBpb": 2.084903525536838,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.6766774562590236,
+   "seconds": 312.060658454895
+  },
+  {
+   "step": 1000,
+   "bpb": 2.285144569520661,
+   "seconds": 625.3841257095337
+  },
+  {
+   "step": 1500,
+   "bpb": 2.16798850977701,
+   "seconds": 942.1547846794128
+  },
+  {
+   "step": 2000,
+   "bpb": 2.124894381619231,
+   "seconds": 1252.9039480686188
+  },
+  {
+   "step": 2500,
+   "bpb": 2.0867177802698618,
+   "seconds": 1564.016660451889
+  },
+  {
+   "step": 3000,
+   "bpb": 2.059321648041393,
+   "seconds": 1881.0000097751617
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " including his campaign. In goaun games. So it's not order to the passes of raises teen systematic when key reviews with types of iOha.\n\nThough RAB in Sanmoni ice God. Doing methodox, or using the plastic family performed the most values on said food, I\u2019"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "shris felon basive among the test.Heiding experience on 30 an applaus how they I would grabs have to be all the air rhetoric between 121.3 Afgaining the Edition of Wednesdays beyond you showere, that's growin-came at tradituning poll out of New Yorks, and "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Facebook and Zangla in the first day of whom\u2019s mapshing? Android from Imigrasherland Noshmid sece the no-module pays.[235] All minerabacle administration, declared that the bacquisity of the menu blunk season will be priced service billions \u2013 the pas"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " and revened by the working or instaurcus on the city. I'm not, they want to continue and decision activity and then president sound in pretty students were channelled been relationship in a guy from the mines compared with the easies of this is part of th"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "lot of white more.\n\nExciting that now has to his practice to impression of smart to make it. We have a back in come to be increased range in the drop looked off. Explains in the world with an environment. In exactly she was solved a slip month all the trai"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Lock, I don't she sudden.\n\nI can deram season name of companies are only period my local addition. It legal can\u2019t term any remain certain investigations for the code what is a change campaign. But as it was a century-based by the bitrifying with the id"
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0
+  ],
+  "decayBytes": [
+   4.191004753112793,
+   4.18967866897583,
+   3.8967981338500977,
+   3.1260275840759277,
+   1.6963419914245605,
+   1.8068102598190308,
+   1.3358094692230225,
+   1.1974599361419678,
+   3.7874577045440674,
+   3.786273717880249,
+   3.5247788429260254,
+   2.8363630771636963,
+   1.5573374032974243,
+   1.656357765197754,
+   1.233696460723877,
+   1.109235405921936,
+   3.7511208057403564,
+   3.7499494552612305,
+   3.4912779331207275,
+   2.8102691173553467,
+   1.5447901487350464,
+   1.6427812576293945,
+   1.2244656085968018,
+   1.1012531518936157,
+   4.634768486022949,
+   4.633285999298096,
+   4.305834770202637,
+   3.444338083267212,
+   1.8485925197601318,
+   1.971683382987976,
+   1.447378396987915,
+   1.293715000152588,
+   2.952800750732422,
+   2.9519097805023193,
+   2.7550911903381348,
+   2.236330509185791,
+   1.267412543296814,
+   1.3428813219070435,
+   1.019674301147461,
+   0.9238013029098511,
+   4.35633659362793,
+   4.354951858520508,
+   4.049197673797607,
+   3.244643449783325,
+   1.7531318664550781,
+   1.868298888206482,
+   1.3774553537368774,
+   1.2334051132202148,
+   3.689345121383667,
+   3.6881954669952393,
+   3.4343221187591553,
+   2.765902042388916,
+   1.5234456062316895,
+   1.6196879148483276,
+   1.2087570428848267,
+   1.0876665115356445
+  ]
+ }
+}

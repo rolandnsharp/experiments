@@ -1,0 +1,462 @@
+{
+ "variant": "polar",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3385688,
+ "updates": 30000,
+ "batch": 16,
+ "trainBytesSeen": 983040000,
+ "seconds": 26291.11761021614,
+ "heldoutBpb": 1.8469131668367216,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.446032882924744,
+   "seconds": 448.5422058105469
+  },
+  {
+   "step": 1000,
+   "bpb": 2.22418399680571,
+   "seconds": 901.5565118789673
+  },
+  {
+   "step": 1500,
+   "bpb": 2.1243463481533413,
+   "seconds": 1348.3881342411041
+  },
+  {
+   "step": 2000,
+   "bpb": 2.103567183923325,
+   "seconds": 1813.5566160678864
+  },
+  {
+   "step": 2500,
+   "bpb": 2.0816918398979145,
+   "seconds": 2264.1232409477234
+  },
+  {
+   "step": 3000,
+   "bpb": 2.0676524500279827,
+   "seconds": 2706.7948067188263
+  },
+  {
+   "step": 3500,
+   "bpb": 2.030149107012163,
+   "seconds": 3125.6847484111786
+  },
+  {
+   "step": 4000,
+   "bpb": 2.013759977302529,
+   "seconds": 3553.4306585788727
+  },
+  {
+   "step": 4500,
+   "bpb": 2.0055624296236108,
+   "seconds": 3980.3053472042084
+  },
+  {
+   "step": 5000,
+   "bpb": 1.992297929084973,
+   "seconds": 4401.410974025726
+  },
+  {
+   "step": 5500,
+   "bpb": 2.016967760085217,
+   "seconds": 4822.1751182079315
+  },
+  {
+   "step": 6000,
+   "bpb": 1.9863245470383382,
+   "seconds": 5249.07222700119
+  },
+  {
+   "step": 6500,
+   "bpb": 1.9642393949277905,
+   "seconds": 5669.880844831467
+  },
+  {
+   "step": 7000,
+   "bpb": 1.9551684924755022,
+   "seconds": 6118.3951325416565
+  },
+  {
+   "step": 7500,
+   "bpb": 1.9493628257602058,
+   "seconds": 6551.675396680832
+  },
+  {
+   "step": 8000,
+   "bpb": 1.956403091432552,
+   "seconds": 6980.050607204437
+  },
+  {
+   "step": 8500,
+   "bpb": 1.940752621833916,
+   "seconds": 7407.678437232971
+  },
+  {
+   "step": 9000,
+   "bpb": 1.9329135504928903,
+   "seconds": 7836.659991025925
+  },
+  {
+   "step": 9500,
+   "bpb": 1.9391385592811108,
+   "seconds": 8258.90108704567
+  },
+  {
+   "step": 10000,
+   "bpb": 1.9241280210029617,
+   "seconds": 8676.64650630951
+  },
+  {
+   "step": 10500,
+   "bpb": 1.9225084442564129,
+   "seconds": 9103.216535329819
+  },
+  {
+   "step": 11000,
+   "bpb": 1.920655637537463,
+   "seconds": 9533.403129816055
+  },
+  {
+   "step": 11500,
+   "bpb": 1.9154059531112013,
+   "seconds": 9964.241196393967
+  },
+  {
+   "step": 12000,
+   "bpb": 1.9075558533826888,
+   "seconds": 10386.793879032135
+  },
+  {
+   "step": 12500,
+   "bpb": 1.903571810781958,
+   "seconds": 10809.210491657257
+  },
+  {
+   "step": 13000,
+   "bpb": 1.917334055984482,
+   "seconds": 11231.863505840302
+  },
+  {
+   "step": 13500,
+   "bpb": 1.9020577185194245,
+   "seconds": 11667.353353738785
+  },
+  {
+   "step": 14000,
+   "bpb": 1.8972227541323448,
+   "seconds": 12109.590854167938
+  },
+  {
+   "step": 14500,
+   "bpb": 1.8942611483909932,
+   "seconds": 12556.036780834198
+  },
+  {
+   "step": 15000,
+   "bpb": 1.8897960434435097,
+   "seconds": 12998.243572950363
+  },
+  {
+   "step": 15500,
+   "bpb": 1.8847525285944275,
+   "seconds": 13441.443009614944
+  },
+  {
+   "step": 16000,
+   "bpb": 1.8872313629114337,
+   "seconds": 13884.127527713776
+  },
+  {
+   "step": 16500,
+   "bpb": 1.876322358256844,
+   "seconds": 14330.683587789536
+  },
+  {
+   "step": 17000,
+   "bpb": 1.8725429051426878,
+   "seconds": 14774.33927989006
+  },
+  {
+   "step": 17500,
+   "bpb": 1.8777937074561803,
+   "seconds": 15225.141905546188
+  },
+  {
+   "step": 18000,
+   "bpb": 1.8795783445518943,
+   "seconds": 15668.008762598038
+  },
+  {
+   "step": 18500,
+   "bpb": 1.8627231848540848,
+   "seconds": 16107.086664915085
+  },
+  {
+   "step": 19000,
+   "bpb": 1.865091181727068,
+   "seconds": 16563.633892059326
+  },
+  {
+   "step": 19500,
+   "bpb": 1.8552558110172364,
+   "seconds": 16997.78680539131
+  },
+  {
+   "step": 20000,
+   "bpb": 1.8551709644513248,
+   "seconds": 17432.55047917366
+  },
+  {
+   "step": 20500,
+   "bpb": 1.8552709078693075,
+   "seconds": 17871.54253268242
+  },
+  {
+   "step": 21000,
+   "bpb": 1.8625186921077512,
+   "seconds": 18307.437750339508
+  },
+  {
+   "step": 21500,
+   "bpb": 1.849069068368833,
+   "seconds": 18743.204970359802
+  },
+  {
+   "step": 22000,
+   "bpb": 1.847252646729456,
+   "seconds": 19197.59353995323
+  },
+  {
+   "step": 22500,
+   "bpb": 1.8444733640958504,
+   "seconds": 19633.237682819366
+  },
+  {
+   "step": 23000,
+   "bpb": 1.8405376163732647,
+   "seconds": 20069.254857301712
+  },
+  {
+   "step": 23500,
+   "bpb": 1.8448853324126187,
+   "seconds": 20504.612750530243
+  },
+  {
+   "step": 24000,
+   "bpb": 1.8405322849110881,
+   "seconds": 20940.84220266342
+  },
+  {
+   "step": 24500,
+   "bpb": 1.8380566430220384,
+   "seconds": 21374.630551576614
+  },
+  {
+   "step": 25000,
+   "bpb": 1.8334430203066192,
+   "seconds": 21808.68712735176
+  },
+  {
+   "step": 25500,
+   "bpb": 1.8327000767527233,
+   "seconds": 22241.012087583542
+  },
+  {
+   "step": 26000,
+   "bpb": 1.8339535185589584,
+   "seconds": 22672.941683530807
+  },
+  {
+   "step": 26500,
+   "bpb": 1.8337853249008724,
+   "seconds": 23110.149094104767
+  },
+  {
+   "step": 27000,
+   "bpb": 1.8276968864608105,
+   "seconds": 23555.418143749237
+  },
+  {
+   "step": 27500,
+   "bpb": 1.8277105483326386,
+   "seconds": 24017.19145321846
+  },
+  {
+   "step": 28000,
+   "bpb": 1.8269634825695797,
+   "seconds": 24475.434893131256
+  },
+  {
+   "step": 28500,
+   "bpb": 1.8262666303661148,
+   "seconds": 24915.12186741829
+  },
+  {
+   "step": 29000,
+   "bpb": 1.824882551613176,
+   "seconds": 25342.770792245865
+  },
+  {
+   "step": 29500,
+   "bpb": 1.8237695228924544,
+   "seconds": 25765.489008426666
+  },
+  {
+   "step": 30000,
+   "bpb": 1.8244062510360692,
+   "seconds": 26184.358278512955
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " including his clap were infringer and terminated this movement.\n\nUtoan Louis, 1996 senior personal security, but the second order did the open sub-industrial internet, with men words or unveiled him. Get he voted off yet are mostly dutiesers, in office, w"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "record class, she games for the magnitude.\n\nOn Friday history to watch out such an engaging external best national critical parents on him. Crawford the Editinisted Emissal Orbit Street showed that mail in happening answers is some\u2014which is likely to be "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Facebook (it's not like that).\n\nI'll depose #2,300 people in he asweeplay it beer late Nostali set a $11 per participant claim that both cloud and legislature cops and hurts obviously, with income religions for the collaboration.\n\nNCHOS pills \u2013 Munich "
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " and responded them to be shot in the house. Character or do not have a class. It was an unrestly factor at a virtual self-cool. We know that when there are that names were related to the much so that was in the capital's brothers. She played it at a good "
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "lot of planners on a committee and detection his death?\n\nLast week, the reported that her detailer was that it beyond a guild somewhat he has been given with three Port of the journalist.\n\nThese included in December and PAK Artist Land, Northern November, "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "izens (1) on the service (3). with through - Prenalbectacks (or plainty), Paedily (Patrick) Higher Mars Legal Radios (Perthans) (Patt certain)\n\nMasser served as a required amount of numerous amid currents and merely decompression that indifference in stric"
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   437.7751770019531,
+   197.412109375,
+   18938.892578125,
+   30.928325653076172,
+   19.194440841674805,
+   14.519255638122559,
+   9.155743598937988,
+   18.63616943359375,
+   118.98253631591797,
+   29.0157470703125,
+   317.6184997558594,
+   10.132323265075684,
+   53.65220642089844,
+   12.386870384216309,
+   36.30976867675781,
+   11.60582160949707,
+   43.78290557861328,
+   72.30811309814453,
+   14.44254207611084,
+   17.452726364135742,
+   17.846132278442383,
+   17.354167938232422,
+   7.067944049835205,
+   7.714703559875488,
+   51.15227508544922,
+   17.694198608398438,
+   14.972841262817383,
+   9.399654388427734,
+   19.701658248901367,
+   11.223878860473633,
+   7.125024795532227,
+   6.19756555557251,
+   13.106021881103516,
+   15.879409790039062,
+   10.387468338012695,
+   7.881174087524414,
+   9.116419792175293,
+   7.898235321044922,
+   4.822170734405518,
+   4.7074456214904785,
+   12.711899757385254,
+   14.52037525177002,
+   6.309006214141846,
+   6.565790176391602,
+   4.887709617614746,
+   5.26528263092041,
+   4.499375820159912,
+   3.325226306915283,
+   4.022806644439697,
+   3.906318426132202,
+   3.944031000137329,
+   3.6264796257019043,
+   2.8069050312042236,
+   2.9801015853881836,
+   2.425590991973877,
+   2.4395806789398193
+  ],
+  "decayBytes": [
+   11.640347480773926,
+   8.182180404663086,
+   3.828655481338501,
+   4.2002153396606445,
+   2.7403371334075928,
+   1.7514235973358154,
+   1.2788885831832886,
+   1.6839922666549683,
+   10.845513343811035,
+   5.210139751434326,
+   17.760414123535156,
+   1.366567611694336,
+   2.131227493286133,
+   2.2129828929901123,
+   4.280946731567383,
+   1.3915913105010986,
+   6.619862079620361,
+   6.716392993927002,
+   1.6860276460647583,
+   1.661134123802185,
+   2.6513216495513916,
+   2.3189618587493896,
+   1.1367305517196655,
+   1.223310947418213,
+   11.870160102844238,
+   2.8260748386383057,
+   1.9084925651550293,
+   1.0980651378631592,
+   1.7367275953292847,
+   1.4701756238937378,
+   1.1882580518722534,
+   1.394889235496521,
+   3.8049471378326416,
+   2.323404550552368,
+   1.5521464347839355,
+   1.0736619234085083,
+   1.7743785381317139,
+   1.2116512060165405,
+   1.1004694700241089,
+   1.19089937210083,
+   1.9830737113952637,
+   2.5146563053131104,
+   1.193945288658142,
+   2.448758840560913,
+   1.1613410711288452,
+   1.004512906074524,
+   1.8834441900253296,
+   1.4514238834381104,
+   0.9598178267478943,
+   1.6136544942855835,
+   1.2885915040969849,
+   1.4286441802978516,
+   1.2306654453277588,
+   1.6682740449905396,
+   1.4847612380981445,
+   1.2268480062484741
+  ]
+ }
+}

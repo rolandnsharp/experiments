@@ -1,0 +1,28 @@
+{
+ "model": "polar-grouped",
+ "layers": 4,
+ "harmonics": 32,
+ "width": 448,
+ "variant": "polar",
+ "mixing": "grouped",
+ "macPerByte": {
+  "matrix products": 487424,
+  "recurrence": 258048,
+  "spatial rotation": 7168,
+  "head": 119616,
+  "total": 872256
+ },
+ "matrixShare": 0.6959424756034925,
+ "training": {
+  "bytesSeen": 98304000,
+  "mac": 257238761472000,
+  "flop": 514477522944000,
+  "seconds": 2393.9743332862854
+ },
+ "gpt2_124m": {
+  "macPerToken": 142406400,
+  "macPerByte": 32365090.909090906,
+  "ratioToThis": 37.1050367198287,
+  "trainingFlopOn9BTokens": 6.71832e+18
+ }
+}
