@@ -67,8 +67,9 @@ grouped curve is still falling at 3K but 0.66 behind at every point.
 ## Decided vs measured
 
 Decided: grouped mixing equals the block-diagonal restriction of the dense
-projection, in exact arithmetic as a statement on proofs.blah.dev
-(https://proofs.blah.dev/theorems/01a16183-668b-783c-9658-32b1313fe5d7) and
+projection, in exact arithmetic as a verified statement on proofs.blah.dev
+(https://proofs.blah.dev/theorems/01a16183-668b-783c-9658-32b1313fe5d7, proof
+https://proofs.blah.dev/submissions/01a1618b-f50c-7dc9-87e3-afe7cd7834ca) and
 in f32 numerically to 1e-15 by `grouped_check.py`. Measured: both bpb numbers,
 one seed each.
 
