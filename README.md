@@ -24,6 +24,41 @@ changes.
 6. **Report compute beside accuracy.** Multiply-adds per byte, training FLOP,
    wall-clock, hardware and cost, so a result is comparable across model sizes.
 
+## Experiments and proofs
+
+The models run in pure arithmetic, so it is tempting to ask whether a run is
+a proof. It is not, and the repo keeps the two apart.
+
+**An experiment measures.** A training run's result is a property of one
+dataset, one optimizer trajectory and one seed. "Polar beats real by 0.04
+bpb" is a measurement with variance: the seed runs in this repo show the
+spread that comes with it, and a different shard order or a different seed
+could move it. No proof turns a measurement into a theorem, because it is not
+one. Every bpb and CORE number here is a measurement, and the paper says so.
+
+**A proof decides.** Some claims hold for all inputs and are decided by the
+Alpha checker, not measured: that a kernel computes the text bit for bit
+(the SM86 model checks), that the parameter count and the multiply-adds per
+byte are what the layout says, that grouped mixing equals the block-diagonal
+restriction of the dense product, that the adjoint is the derivative of the
+forward text. These live as laws in the Vidya system (`systems/vidya/tests/
+qualification/Proof/`), in Alpha because Alpha is the language whose checker
+decides them. A paper cites them as decided and links the root that holds them.
+
+**What a proof is for here.** It tells you that what ran is what the text
+says, so a measurement is of the architecture and not of a bug, and that two
+things claimed equal (two layouts, a kernel and its text) are equal. It never
+tells you the model learns, or that one form of the model learns better; only
+a run does that, and only within its seeds and data.
+
+**What goes where.** A claim about the architecture that holds for all inputs
+(stability of the pole under its parameterisation, the equal-compute
+equivalence of two layouts) belongs as an Alpha law in the Vidya system,
+linked from the paper. A claim about a trained model belongs in the paper's
+results, with its seeds. Each paper's "decided vs measured" section says which
+of its claims is which, and nothing is promoted from the second kind to the
+first by this repo.
+
 ## Layout
 
 ```
