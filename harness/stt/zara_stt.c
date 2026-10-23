@@ -334,7 +334,7 @@ static float dot(const float *w, const float *x, int in) {
 #if defined(__aarch64__)
 #include <arm_neon.h>
 /* 4 output rows x 4 frames per pass: 8 vector loads feed 16 fused multiply-adds */
-static void matmul(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
+static void matmul_f32(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
     int o = 0;
     if (in % 4 == 0) {
         for (; o + 4 <= out; o += 4) {
@@ -372,11 +372,87 @@ static void matmul(const float *W, const float *X, const float *b, float *Y, int
         for (int k = 0; k < K; k++) Y[(size_t)k * out + o] = dot(W + (size_t)o * in, X + (size_t)k * in, in) + (b ? b[o] : 0);
 }
 #else
-static void matmul(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
+static void matmul_f32(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
     for (int o = 0; o < out; o++)
         for (int k = 0; k < K; k++) Y[(size_t)k * out + o] = dot(W + (size_t)o * in, X + (size_t)k * in, in) + (b ? b[o] : 0);
 }
 #endif
+
+/* --int8: weights quantised per output row (symmetric, scale = max|w| / 127) at load time,
+ * activations per frame row; products accumulate exactly in int32 and are rescaled once.
+ * The A72 has no int8 dot-product instruction, so the kernel uses widening multiplies
+ * (vmull_s8 / vmlal_high_s8 into int16, pairwise-accumulated into int32). */
+static int g_int8 = 0;
+typedef struct { const float *f; int8_t *q; float *scale; int out, in; } QMat;
+#define MAXQ 64
+static QMat g_q[MAXQ]; static int g_nq = 0;
+static int8_t *g_xq; static float *g_xs; static size_t g_xqcap = 0;
+
+static QMat *qmat_of(const float *W, int out, int in) {
+    for (int i = 0; i < g_nq; i++) if (g_q[i].f == W) return &g_q[i];
+    if (g_nq == MAXQ || in % 16) return NULL;
+    QMat *q = &g_q[g_nq++]; q->f = W; q->out = out; q->in = in;
+    q->q = malloc((size_t)out * in); q->scale = malloc(out * 4);
+    for (int o = 0; o < out; o++) {
+        const float *w = W + (size_t)o * in; float mx = 0;
+        for (int i = 0; i < in; i++) mx = fabsf(w[i]) > mx ? fabsf(w[i]) : mx;
+        float sc = mx > 0 ? mx / 127.0f : 1.0f; q->scale[o] = sc;
+        for (int i = 0; i < in; i++) { int v = (int)lrintf(w[i] / sc); q->q[(size_t)o * in + i] = (int8_t)(v > 127 ? 127 : v < -127 ? -127 : v); }
+    }
+    return q;
+}
+
+static void quantise_rows(const float *X, int K, int in) {
+    if ((size_t)K * in > g_xqcap) { g_xqcap = (size_t)K * in; g_xq = realloc(g_xq, g_xqcap); g_xs = realloc(g_xs, K * 4); }
+    for (int k = 0; k < K; k++) {
+        const float *x = X + (size_t)k * in; float mx = 0;
+        for (int i = 0; i < in; i++) mx = fabsf(x[i]) > mx ? fabsf(x[i]) : mx;
+        float sc = mx > 0 ? mx / 127.0f : 1.0f, inv = 1.0f / sc; g_xs[k] = sc;
+        for (int i = 0; i < in; i++) { int v = (int)lrintf(x[i] * inv); g_xq[(size_t)k * in + i] = (int8_t)(v > 127 ? 127 : v < -127 ? -127 : v); }
+    }
+}
+
+static int32_t idot(const int8_t *a, const int8_t *b, int n) { int32_t s = 0; for (int i = 0; i < n; i++) s += a[i] * b[i]; return s; }
+
+static void matmul_q8(const QMat *q, const float *X, const float *b, float *Y, int K) {
+    int out = q->out, in = q->in;
+    quantise_rows(X, K, in);
+    int o = 0;
+#if defined(__aarch64__)
+    for (; o + 4 <= out; o += 4) {
+        const int8_t *w0 = q->q + (size_t)o * in, *w1 = w0 + in, *w2 = w1 + in, *w3 = w2 + in;
+        int k = 0;
+        for (; k + 4 <= K; k += 4) {
+            const int8_t *x0 = g_xq + (size_t)k * in, *x1 = x0 + in, *x2 = x1 + in, *x3 = x2 + in;
+            int32x4_t acc[4][4];
+            for (int r = 0; r < 4; r++) for (int j = 0; j < 4; j++) acc[r][j] = vdupq_n_s32(0);
+            for (int i = 0; i < in; i += 16) {
+                int8x16_t v[4] = { vld1q_s8(x0 + i), vld1q_s8(x1 + i), vld1q_s8(x2 + i), vld1q_s8(x3 + i) };
+                const int8_t *wr[4] = { w0 + i, w1 + i, w2 + i, w3 + i };
+                for (int r = 0; r < 4; r++) {
+                    int8x16_t u = vld1q_s8(wr[r]);
+                    for (int j = 0; j < 4; j++) {
+                        int16x8_t pr = vmull_s8(vget_low_s8(u), vget_low_s8(v[j]));
+                        pr = vmlal_high_s8(pr, u, v[j]);
+                        acc[r][j] = vpadalq_s16(acc[r][j], pr);
+                    }
+                }
+            }
+            for (int r = 0; r < 4; r++) for (int j = 0; j < 4; j++)
+                Y[(size_t)(k + j) * out + o + r] = (float)vaddvq_s32(acc[r][j]) * q->scale[o + r] * g_xs[k + j] + (b ? b[o + r] : 0);
+        }
+        for (; k < K; k++) for (int r = 0; r < 4; r++)
+            Y[(size_t)k * out + o + r] = (float)idot(q->q + (size_t)(o + r) * in, g_xq + (size_t)k * in, in) * q->scale[o + r] * g_xs[k] + (b ? b[o + r] : 0);
+    }
+#endif
+    for (; o < out; o++) for (int k = 0; k < K; k++)
+        Y[(size_t)k * out + o] = (float)idot(q->q + (size_t)o * in, g_xq + (size_t)k * in, in) * q->scale[o] * g_xs[k] + (b ? b[o] : 0);
+}
+
+static void matmul(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
+    QMat *q = g_int8 ? qmat_of(W, out, in) : NULL;
+    if (q) matmul_q8(q, X, b, Y, K); else matmul_f32(W, X, b, Y, out, in, K);
+}
 
 static void chunk_alloc(Model *m, int K) {
     Hdr h = m->h; int D = h.D;
@@ -487,17 +563,233 @@ static void frames_chunk(Model *m, int K, float *logp) {
     }
 }
 
+
+/* ---------------- CTC prefix beam search with a word 3-gram (--lm) ----------------
+ * Prefixes are nodes of a tree shared by all beams (node = parent + one character), so two
+ * beams with the same text are the same node and merge exactly. Each node caches its word-LM
+ * state, which depends only on its text: the last two completed words and the accumulated
+ * alpha * log p(word | context) + beta per word, plus a one-off penalty when the partial word
+ * is not a prefix of any vocabulary word. Log-probabilities are natural logs throughout. */
+typedef struct { int V, N2, N3; char **w; int *wl; float *ulp, *ubo; uint64_t *k2; float *l2, *b2; uint64_t *k3; float *l3; int unk, bos, eos; } LM;
+
+static int lm_cmp(const LM *lm, int i, const char *s, int n) {   /* sign of (word i) - (s, n), byte order */
+    int m = lm->wl[i] < n ? lm->wl[i] : n, c = memcmp(lm->w[i], s, m);
+    return c ? c : lm->wl[i] - n;
+}
+static int lm_lower(const LM *lm, const char *s, int n) {
+    int lo = 0, hi = lm->V;
+    while (lo < hi) { int mid = (lo + hi) / 2; if (lm_cmp(lm, mid, s, n) < 0) lo = mid + 1; else hi = mid; }
+    return lo;
+}
+static int lm_id(const LM *lm, const char *s, int n) {
+    int i = lm_lower(lm, s, n);
+    return i < lm->V && lm_cmp(lm, i, s, n) == 0 ? i : -1;
+}
+static int lm_is_prefix(const LM *lm, const char *s, int n) {
+    int i = lm_lower(lm, s, n);
+    return i < lm->V && lm->wl[i] >= n && memcmp(lm->w[i], s, n) == 0;
+}
+static long find_key(const uint64_t *k, long n, uint64_t key) {
+    long lo = 0, hi = n;
+    while (lo < hi) { long mid = (lo + hi) / 2; if (k[mid] < key) lo = mid + 1; else hi = mid; }
+    return lo < n && k[lo] == key ? lo : -1;
+}
+/* log p(w3 | w1 w2) with Katz backoff; w1 or w2 may be -1 (no context) */
+static float lm_score(const LM *lm, int w1, int w2, int w3) {
+    if (w1 >= 0 && w2 >= 0) {
+        long i = find_key(lm->k3, lm->N3, ((uint64_t)w1 << 36) | ((uint64_t)w2 << 18) | (uint64_t)w3);
+        if (i >= 0) return lm->l3[i];
+        long j = find_key(lm->k2, lm->N2, ((uint64_t)w1 << 18) | (uint64_t)w2);
+        float bo = j >= 0 ? lm->b2[j] : 0;
+        return bo + lm_score(lm, -1, w2, w3);
+    }
+    if (w2 >= 0) {
+        long i = find_key(lm->k2, lm->N2, ((uint64_t)w2 << 18) | (uint64_t)w3);
+        if (i >= 0) return lm->l2[i];
+        return lm->ubo[w2] + lm->ulp[w3];
+    }
+    return lm->ulp[w3];
+}
+static LM *load_lm(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) { perror(path); exit(1); }
+    char magic[4]; int hdr[3];
+    if (fread(magic, 1, 4, f) != 4 || memcmp(magic, "ZLM1", 4) || fread(hdr, 4, 3, f) != 3) { fprintf(stderr, "%s: not a ZLM1 LM\n", path); exit(1); }
+    LM *lm = calloc(1, sizeof(LM)); lm->V = hdr[0]; lm->N2 = hdr[1]; lm->N3 = hdr[2];
+    lm->w = malloc(lm->V * sizeof(char *)); lm->wl = malloc(lm->V * sizeof(int));
+    for (int i = 0; i < lm->V; i++) {
+        uint16_t n; if (fread(&n, 2, 1, f) != 1) { fprintf(stderr, "short LM\n"); exit(1); }
+        lm->w[i] = malloc(n + 1); lm->wl[i] = n;
+        if (fread(lm->w[i], 1, n, f) != n) { fprintf(stderr, "short LM\n"); exit(1); }
+        lm->w[i][n] = 0;
+    }
+#define RD(ptr, type, cnt) do { ptr = malloc((size_t)(cnt) * sizeof(type)); if (fread(ptr, sizeof(type), (cnt), f) != (size_t)(cnt)) { fprintf(stderr, "short LM\n"); exit(1); } } while (0)
+    RD(lm->ulp, float, lm->V); RD(lm->ubo, float, lm->V);
+    RD(lm->k2, uint64_t, lm->N2); RD(lm->l2, float, lm->N2); RD(lm->b2, float, lm->N2);
+    RD(lm->k3, uint64_t, lm->N3); RD(lm->l3, float, lm->N3);
+#undef RD
+    fclose(f);
+    lm->unk = lm_id(lm, "<unk>", 5); if (lm->unk < 0) lm->unk = lm_id(lm, "<UNK>", 5);
+    if (lm->unk < 0) { fprintf(stderr, "%s: no <unk> word\n", path); exit(1); }
+    lm->bos = lm_id(lm, "<s>", 3); lm->eos = lm_id(lm, "</s>", 4);
+    return lm;
+}
+
+typedef struct { int parent, depth, wstart, w1, w2, penalised; char ch; float lm, partial; } Node;
+/* pyctcdecode's rules: an out-of-vocabulary word costs UNK_OFFSET in log10 units before alpha;
+ * a partial word that is no vocabulary prefix costs UNK_OFFSET (raw), scaled up past 6 letters,
+ * as a ranking term that is recomputed, not accumulated */
+#define UNK_OFFSET (-10.0f)
+#define LN10 2.302585093f
+typedef struct { Node *n; int count, cap; int *map; long mapcap; } Tree;   /* map: (parent, class) -> child */
+
+static int tree_child(Tree *t, int parent, int cls, const LM *lm, float alpha, float beta) {
+    long key = (long)parent * 32 + cls;
+    if ((long)t->count * 2 >= t->mapcap) {                          /* grow and rehash */
+        long nc = t->mapcap * 2; int *nm = malloc(nc * sizeof(int)); for (long i = 0; i < nc; i++) nm[i] = -1;
+        for (int i = 1; i < t->count; i++) {
+            long k = (long)t->n[i].parent * 32 + (t->n[i].ch == '\'' ? 1 : t->n[i].ch == ' ' ? 2 : t->n[i].ch - 'A' + 3);
+            long h = (k * 2654435761u) & (nc - 1); while (nm[h] >= 0) h = (h + 1) & (nc - 1); nm[h] = i;
+        }
+        free(t->map); t->map = nm; t->mapcap = nc;
+    }
+    long h = (key * 2654435761u) & (t->mapcap - 1);
+    while (t->map[h] >= 0) {
+        int i = t->map[h];
+        long k = (long)t->n[i].parent * 32 + (t->n[i].ch == '\'' ? 1 : t->n[i].ch == ' ' ? 2 : t->n[i].ch - 'A' + 3);
+        if (k == key) return i;
+        h = (h + 1) & (t->mapcap - 1);
+    }
+    if (t->count == t->cap) { t->cap *= 2; t->n = realloc(t->n, t->cap * sizeof(Node)); }
+    int id = t->count++;
+    Node *pn = &t->n[parent], *c = &t->n[id];
+    *c = *pn; c->parent = parent; c->depth = pn->depth + 1;
+    c->ch = cls == 1 ? '\'' : cls == 2 ? ' ' : 'A' + (cls - 3);
+    char word[64]; int wl = 0;
+    if (c->ch == ' ') {                     /* a word ends: score it */
+        int i = parent; while (i > 0 && t->n[i].ch != ' ' && wl < 63) { word[wl++] = t->n[i].ch; i = t->n[i].parent; }
+        for (int a = 0, b = wl - 1; a < b; a++, b--) { char x = word[a]; word[a] = word[b]; word[b] = x; }
+        int w = lm_id(lm, word, wl);
+        c->lm += alpha * (lm_score(lm, pn->w1, pn->w2, w >= 0 ? w : lm->unk) + (w < 0 ? UNK_OFFSET * LN10 : 0)) + beta;
+        c->w1 = pn->w2; c->w2 = w >= 0 ? w : lm->unk; c->penalised = 0; c->wstart = c->depth; c->partial = 0;
+    } else {                                /* a word grows: is it still a prefix of some word? */
+        int i = id; while (i > 0 && t->n[i].ch != ' ' && wl < 63) { word[wl++] = t->n[i].ch; i = t->n[i].parent; }
+        for (int a = 0, b = wl - 1; a < b; a++, b--) { char x = word[a]; word[a] = word[b]; word[b] = x; }
+        c->partial = lm_is_prefix(lm, word, wl) ? 0 : UNK_OFFSET * (wl > 6 ? wl / 6.0f : 1.0f);
+    }
+    t->map[h] = id;
+    return id;
+}
+
+static float lse2(float a, float b) { if (a < b) { float x = a; a = b; b = x; } return b < -1e29f ? a : a + log1pf(expf(b - a)); }
+
+typedef struct { int node; float pb, pnb; } Hyp;
+
+/* decode logp [frames][classes]; writes the best text (no leading/trailing spaces) to out */
+static void beam_decode(const float *logp, int frames, int classes, const LM *lm, float alpha, float beta, int B, char *out, int outcap) {
+    Tree t; t.cap = 1 << 16; t.n = malloc(t.cap * sizeof(Node)); t.count = 1; t.mapcap = 1 << 17;
+    t.map = malloc(t.mapcap * sizeof(int)); for (long i = 0; i < t.mapcap; i++) t.map[i] = -1;
+    memset(&t.n[0], 0, sizeof(Node)); t.n[0].parent = -1; t.n[0].w1 = -1; t.n[0].w2 = lm->bos; t.n[0].ch = ' ';
+    Hyp *cur = malloc(B * sizeof(Hyp)), *cand = malloc((size_t)B * (classes + 1) * sizeof(Hyp));
+    int ncur = 1; cur[0].node = 0; cur[0].pb = 0; cur[0].pnb = -1e30f;
+    int slotcap = 1; while (slotcap < 4 * B * (classes + 1)) slotcap <<= 1;
+    int *slot = malloc(slotcap * sizeof(int));
+    for (int f = 0; f < frames; f++) {
+        const float *lp = logp + (size_t)f * classes;
+        float mx = lp[0]; for (int c = 1; c < classes; c++) if (lp[c] > mx) mx = lp[c];
+        for (int i = 0; i < slotcap; i++) slot[i] = -1;
+        int nc = 0;
+#define ADD(nodeid, which, val) do { int _n = (nodeid); long _h = ((long)_n * 2654435761u) & (slotcap - 1); \
+        while (slot[_h] >= 0 && cand[slot[_h]].node != _n) _h = (_h + 1) & (slotcap - 1); \
+        if (slot[_h] < 0) { slot[_h] = nc; cand[nc].node = _n; cand[nc].pb = -1e30f; cand[nc].pnb = -1e30f; nc++; } \
+        cand[slot[_h]].which = lse2(cand[slot[_h]].which, (val)); } while (0)
+        for (int b = 0; b < ncur; b++) {
+            Hyp *h = &cur[b]; Node *nd = &t.n[h->node];
+            float p = lse2(h->pb, h->pnb);
+            int lastcls = h->node == 0 ? 0 : (nd->ch == '\'' ? 1 : nd->ch == ' ' ? 2 : nd->ch - 'A' + 3);
+            ADD(h->node, pb, p + lp[0]);                                     /* blank */
+            if (lastcls > 0) ADD(h->node, pnb, h->pnb + lp[lastcls]);        /* repeat collapses */
+            for (int c = 1; c < classes; c++) {
+                if (lp[c] < mx - 12.0f) continue;                            /* hopeless classes */
+                if (c == 2 && (h->node == 0 || nd->ch == ' ')) { ADD(h->node, pnb, p + lp[c]); continue; }   /* no empty words */
+                int child = tree_child(&t, h->node, c, lm, alpha, beta);
+                nd = &t.n[h->node];                                          /* tree may have moved */
+                ADD(child, pnb, (c == lastcls ? h->pb : p) + lp[c]);
+            }
+        }
+#undef ADD
+        /* keep the B best by acoustic + LM score */
+        for (int i = 0; i < nc; i++) for (int j = i + 1; j < nc && i < B; j++) {
+            float si = lse2(cand[i].pb, cand[i].pnb) + t.n[cand[i].node].lm + t.n[cand[i].node].partial;
+            float sj = lse2(cand[j].pb, cand[j].pnb) + t.n[cand[j].node].lm + t.n[cand[j].node].partial;
+            if (sj > si) { Hyp x = cand[i]; cand[i] = cand[j]; cand[j] = x; }
+        }
+        ncur = nc < B ? nc : B;
+        memcpy(cur, cand, ncur * sizeof(Hyp));
+    }
+    /* finish: score the last partial word and the end of sentence */
+    float best = -1e30f; int bestn = 0;
+    for (int b = 0; b < ncur; b++) {
+        int n = cur[b].node; Node *nd = &t.n[n];
+        float s = lse2(cur[b].pb, cur[b].pnb) + nd->lm;
+        int w1 = nd->w1, w2 = nd->w2;
+        if (n != 0 && nd->ch != ' ') {
+            char word[64]; int wl = 0, i = n;
+            while (i > 0 && t.n[i].ch != ' ' && wl < 63) { word[wl++] = t.n[i].ch; i = t.n[i].parent; }
+            for (int a = 0, c = wl - 1; a < c; a++, c--) { char x = word[a]; word[a] = word[c]; word[c] = x; }
+            int w = lm_id(lm, word, wl);
+            s += alpha * (lm_score(lm, w1, w2, w >= 0 ? w : lm->unk) + (w < 0 ? UNK_OFFSET * LN10 : 0)) + beta;
+            w1 = w2; w2 = w >= 0 ? w : lm->unk;
+        }
+        s += alpha * lm_score(lm, w1, w2, lm->eos);
+        if (s > best) { best = s; bestn = n; }
+    }
+    int len = t.n[bestn].depth; if (len >= outcap) len = outcap - 1;
+    out[len] = 0;
+    for (int i = bestn, k = t.n[bestn].depth - 1; i > 0; i = t.n[i].parent, k--) if (k < len) out[k] = t.n[i].ch;
+    char *a = out; while (*a == ' ') a++;
+    memmove(out, a, strlen(a) + 1);
+    for (int k = (int)strlen(out) - 1; k >= 0 && out[k] == ' '; k--) out[k] = 0;
+    free(t.n); free(t.map); free(cur); free(cand); free(slot);
+}
+
+/* test mode: decode a file of dumped log-probabilities (int32 count; per utterance int32 frames + floats) */
+static int decode_logp_file(const char *path, const LM *lm, float alpha, float beta, int B) {
+    FILE *f = fopen(path, "rb"); if (!f) { perror(path); return 1; }
+    int count; if (fread(&count, 4, 1, f) != 1) return 1;
+    char *out = malloc(1 << 16);
+    for (int u = 0; u < count; u++) {
+        int frames; if (fread(&frames, 4, 1, f) != 1) return 1;
+        float *lp = malloc((size_t)frames * 29 * 4);
+        if (fread(lp, 4, (size_t)frames * 29, f) != (size_t)frames * 29) return 1;
+        beam_decode(lp, frames, 29, lm, alpha, beta, B, out, 1 << 16);
+        printf("%s\n", out); fflush(stdout); free(lp);
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: %s MODEL.bin FILE.wav [--dump OUT.f32] [--bench] [--gain G]\n", argv[0]); return 1; }
-    const char *dump = NULL; int bench = 0; float gain = 0; int K = 16;
+    const char *dump = NULL, *lmpath = NULL, *logpfile = NULL; int bench = 0, beam = 32; float gain = 0, alpha = 0.5f, beta = 0.5f; int K = 16;
     for (int i = 3; i < argc; i++) {
         if (!strcmp(argv[i], "--dump") && i + 1 < argc) dump = argv[++i];
         else if (!strcmp(argv[i], "--bench")) bench = 1;
         else if (!strcmp(argv[i], "--gain") && i + 1 < argc) gain = atof(argv[++i]);
         else if (!strcmp(argv[i], "--chunk") && i + 1 < argc) K = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--lm") && i + 1 < argc) lmpath = argv[++i];
+        else if (!strcmp(argv[i], "--alpha") && i + 1 < argc) alpha = atof(argv[++i]);
+        else if (!strcmp(argv[i], "--beta") && i + 1 < argc) beta = atof(argv[++i]);
+        else if (!strcmp(argv[i], "--beam") && i + 1 < argc) beam = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--int8")) g_int8 = 1;
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 1; }
     }
+    if (!strcmp(argv[1], "--decode-logp")) {          /* zara_stt --decode-logp FILE --lm LM.bin [...]: decoder test */
+        logpfile = argv[2];
+        if (!lmpath) { fprintf(stderr, "--decode-logp needs --lm\n"); return 1; }
+        return decode_logp_file(logpfile, load_lm(lmpath), alpha, beta, beam);
+    }
     Model *m = load_model(argv[1]);
+    LM *lm = lmpath ? load_lm(lmpath) : NULL;
     size_t n; float *x = read_wav(argv[2], &n, m->h.rate);
     if (gain == 0) {
         double s = 0; for (size_t i = 0; i < n; i++) s += (double)x[i] * x[i];
@@ -531,13 +823,19 @@ int main(int argc, char **argv) {
         }
     }
     (void)feat; (void)frame_step;
-    double t1 = now();
+    double t1 = now(), tlm = t1;
     text[tlen] = 0;
-    printf("%s\n", text);
+    if (lm) {
+        char *out = malloc(1 << 16);
+        beam_decode(logp, (int)frames, classes, lm, alpha, beta, beam, out, 1 << 16);
+        tlm = now();
+        printf("%s\n", out);
+    } else printf("%s\n", text);
     if (dump) { FILE *f = fopen(dump, "wb"); fwrite(logp, 4, frames * classes, f); fclose(f); }
     if (bench) {
         double audio = (double)n / m->h.rate, wall = t1 - t0;
         fprintf(stderr, "audio %.2f s, compute %.3f s, real-time factor %.4f (%.1fx faster than real time)\n", audio, wall, wall / audio, audio / wall);
+        if (lm) fprintf(stderr, "beam search with LM: %.3f s, real-time factor %.4f\n", tlm - t1, (tlm - t1) / audio);
     }
     return 0;
 }

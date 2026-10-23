@@ -1,0 +1,10 @@
+alpha 0.5 beta 0.5: WER 0.267 CER 0.117 over 200 utterances
+alpha 0.5 beta 1.5: WER 0.271 CER 0.114 over 200 utterances
+alpha 0.5 beta 2.5: WER 0.279 CER 0.111 over 200 utterances
+alpha 0.8 beta 0.5: WER 0.367 CER 0.159 over 200 utterances
+alpha 0.8 beta 1.5: WER 0.317 CER 0.141 over 200 utterances
+alpha 0.8 beta 2.5: WER 0.281 CER 0.125 over 200 utterances
+alpha 1.0 beta 0.5: WER 0.501 CER 0.202 over 200 utterances
+alpha 1.0 beta 1.5: WER 0.436 CER 0.185 over 200 utterances
+alpha 1.0 beta 2.5: WER 0.364 CER 0.158 over 200 utterances
+done
