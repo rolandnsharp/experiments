@@ -1,7 +1,7 @@
 # Ternary projections in Vidya: same width and twice the width
 
 **Date.** 2026-10-23. **Status.** seed 0 done: B at 1x, 2x, 4x; float at 2x;
-C at 4x. Float polar 4x landed (2.0039); seed 1 of C running.
+C at 4x. C done at two seeds; float polar 4x landed (2.0039).
 
 ## Question
 
@@ -189,6 +189,11 @@ At matched 4x rates: same-width ternary loses **+0.077** (2.0806); the wide
 ternary arm C wins by **−0.022** (1.9818), down from the −0.034 against float
 2x.
 
+**C, seed 1** (pod q9u7f4xbqqjh9y, 09:16–10:23 UTC): **1.9832 bpb**,
+0.0014 from seed 0's 1.9818. Subset curve within 0.003 of seed 0 at every
+check (1500: 2.0696; 2000: 2.0337; 2500: 1.9911). Against float polar 4x
+(2.0039, one seed): −0.021 and −0.022 at seeds 0 and 1.
+
 Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
 93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
@@ -224,7 +229,7 @@ Measured: every bpb number, one seed so far.
 
 ## Verdict
 
-Provisional (seed 0; float now at its best tried rate, 4x: 2.0039):
+C at two seeds (1.9818, 1.9832); B and the float arms at seed 0:
 
 - B (same width) lost less than predicted at the control's rate (+0.079 vs
   0.10–0.25 predicted). At matched rates it loses 0.065–0.076 to float.
@@ -237,7 +242,7 @@ Provisional (seed 0; float now at its best tried rate, 4x: 2.0039):
   of the three tried. The float model also wants 2x or more, which the
   experiment did not anticipate (see learning-rate-4l32h).
 
-Caveats: one seed; 3K updates only; C has 3.8x the multiply-adds (as adds).
+Caveats: C at two seeds, B and the float comparison at one; 3K updates only; C has 3.8x the multiply-adds (as adds). The float seed-to-seed spread at 1x was 0.008 (text-pole-form), well under the 0.021 lead.
 
 ## What it changes
 
