@@ -315,10 +315,23 @@ def parallel_batches(corpus, gen, workers, augment, seed):
     import multiprocessing as mp
     global _W_CORPUS
     _W_CORPUS = corpus
+    import threading
     ctx = mp.get_context('fork')
     pool = ctx.Pool(workers)
-    jobs = ((next(gen), (seed * 1000003 + k) if augment else None) for k in range(10 ** 12))
-    return pool.imap(_w_batch, jobs, chunksize=1)
+    ahead = threading.Semaphore(2 * workers)      # at most 2 x workers batches prepared and not yet used
+
+    def jobs():                                   # Pool.imap pulls jobs eagerly from its own thread: bound it here
+        for k in range(10 ** 12):
+            ahead.acquire()
+            yield next(gen), ((seed * 1000003 + k) if augment else None)
+
+    results = pool.imap(_w_batch, jobs(), chunksize=1)
+
+    def feed():
+        for r in results:
+            ahead.release()
+            yield r
+    return feed()
 
 
 def edit_distance(a, b):
