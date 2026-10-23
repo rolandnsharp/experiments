@@ -1,7 +1,7 @@
 # 8-bit projection inputs on the wide ternary Vidya
 
-**Date.** 2026-10-23. **Status.** planned. The code and the CPU check are
-done; the run waits for Roland's go. The prediction was written at 12:10 UTC,
+**Date.** 2026-10-23. **Status.** running: launched 12:13 UTC on Roland's account (MARKS `act8-w64`), waiting for 3090 stock. The code and the CPU check are
+done. The prediction was written at 12:10 UTC,
 before any run with the flag.
 
 ## Question
