@@ -1,6 +1,6 @@
 # Peak learning rate at 4L/32H: is Diakosmos's 0.003 too low, and does the pole gain survive a tuned rate?
 
-**Date.** 2026-10-23. **Status.** running. The paper and prediction were
+**Date.** 2026-10-23. **Status.** done (one seed, 3K updates). The paper and prediction were
 written at 08:35 UTC by the ternary-projections session, before any arm of
 the grid below had a result except polar 2x (see "Known before writing").
 The arms are run by the Vidya session (launchers `lrcheck-*` on Roland's
@@ -99,10 +99,10 @@ launchers `lrcheck-*`).
 |---|---|---|---|
 | 1x (0.003) | 2.0849 | 2.0490 | 0.036 |
 | 2x | 2.0519 | 2.0157 | 0.036 |
-| 4x | 2.0381 | (running) | |
+| 4x | 2.0381 | 2.0039 | 0.034 |
 
 Real 2x: pod 6pjs8ct6mv5rrt, 1,888 s; real 4x: 1,723 s; polar 4x: pod
-3se6eb4flh8diw, from 09:31 UTC.
+3se6eb4flh8diw, 09:31–10:20 UTC.
 
 ## Decided vs measured
 
@@ -111,7 +111,20 @@ harness. Measured: every bpb number, one seed.
 
 ## Verdict
 
-(pending)
+All three predictions held, on one seed at 3K updates:
+
+- Real decay gained at least as much as polar from a higher rate: 2.0519 at
+  2x and 2.0381 at 4x, inside the predicted 2.03–2.06 (1x to 4x: −0.047;
+  polar 1x to 4x: −0.045).
+- Polar 4x (2.0039) is within the predicted ±0.015 of polar 2x (2.0157).
+- The pole gain at each form's best rate tried (4x for both) is **0.034**,
+  inside the predicted 0.01–0.04, and it is 0.036, 0.036, 0.034 at 1x, 2x
+  and 4x: **the pole result is not an artefact of the learning rate.**
+
+Not settled: both forms still improve from 2x to 4x (real by 0.014, polar
+by 0.012), so the best rate may lie above 4x for both; an 8x pair would say.
+And Björck et al. 2024 says the best rate falls with more training, so these
+3K numbers don't set the rate for a 30K run.
 
 ## What it changes
 
