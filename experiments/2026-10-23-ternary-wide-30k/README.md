@@ -1,9 +1,10 @@
 # Does the wide ternary model's lead grow with training? Ternary vs float from 3K to 30K updates
 
-**Date.** 2026-10-23. **Status.** planned. Written at 09:50 UTC, before
-seed 1 of ternary-projections' arm C landed. It launches only if that seed
-holds: C at seed 1 within 0.02 of seed 0's 1.9818, and still ahead of the
-best float run at 3K.
+**Date.** 2026-10-23. **Status.** running. Written at 09:50 UTC, before
+seed 1 of ternary-projections' arm C landed, gated on that seed holding.
+It held (1.9832 vs 1.9818, still ahead of float 4x's 2.0039), and Roland
+approved the launch. Launchers started at 10:27 UTC (MARKS `tw30k-t3`,
+`tw30k-f30`, `tw30k-t30`), waiting for 3090 stock.
 
 ## Question
 
