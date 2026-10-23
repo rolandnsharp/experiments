@@ -7,6 +7,8 @@
 # happens. Environment (from the deployment):
 #   LAB_KEY_B64  the lab's pod-upload private key, base64
 #   LEGS         "variant:mixing[:updates[:seed]] ..." (default real:dense polar:dense polar:grouped);
+#                a leg "script:NAME.py" runs that lab script instead: python NAME.py --bytes owt
+#                --out runs/NAME[-TAG] EXTRA, its outputs pushed like a leg's
 #                updates "autoH" trains for H hours: a 30-update benchmark sets the count
 #   UPDATES      updates a leg when the leg does not say (default 3000)
 #   LAYERS HARMONICS BATCH SHARDS   the model and the data (default 4 32 16 0 = every shard)
@@ -42,7 +44,8 @@ case "$CUDA" in True*) ;; *) say "no CUDA in this container; asking for another 
 say "fetching"
 mkdir -p /root/field/runs && cd /root/field
 # scripts, then the bytes the legs need as a tar stream
-for f in field_poles.py zara_poles.py diakosmos_oracle.py mulaw.py compute_cost.py; do
+SCRIPTS=$(for l in $LEGS; do case "$l" in script:*) echo "${l#script:}" ;; esac; done)
+for f in field_poles.py zara_poles.py diakosmos_oracle.py mulaw.py compute_cost.py $SCRIPTS; do
   lab "cat ~/field/$f" > /root/field/$f || fail "fetch $f failed"
 done
 FILES=$(lab "bash ~/field/owt-files.sh $SHARDS") || fail "listing the shards failed"
@@ -62,6 +65,17 @@ train() {  # train NAME VARIANT MIXING SEED UPDATES BATCH [extra args]
 }
 # a leg is variant:mixing[:updates[:seed]]; its run directory names the model, seed, updates and batch
 for leg in $LEGS; do
+  case "$leg" in
+    script:*)
+      s=${leg#script:}; name=${s%.py}${TAG:+-$TAG}
+      say "script $s starting"
+      python $s --bytes owt --out /root/field/runs/$name $EXTRA > /root/field/runs/$name.log 2>&1
+      rc=$?
+      echo "$name exit=$rc" >> /root/field/runs/RUN-DONE
+      push
+      say "script $s done (exit $rc): $(tail -1 /root/field/runs/$name.log | cut -c1-160)"
+      continue ;;
+  esac
   IFS=: read -r v m u sd <<< "$leg"; u=${u:-$UPDATES}; sd=${sd:-0}; b=$BATCH
   case "$u" in
     auto*)
