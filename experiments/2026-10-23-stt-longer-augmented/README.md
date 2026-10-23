@@ -15,6 +15,13 @@ driver treated the death as the end of the run and stopped the pod; the run was 
 the same round-3 checkpoint on a new A40 (`x3qd3mmimou0wf`) at 08:25 UTC. Cost of both false
 starts: about $0.70 and 1.5 h.
 
+Third defect, found by a release self-test on the lab: with `--workers`, the trainer never exits
+after training (the pool's feeder thread blocks on the semaphore), so the driver would not see the
+run end until the 36 h self-stop (~16 h idle, ~$10). Fixed in the harness (the feeder is unblocked
+and the pool terminated after the last update; verified: exits 8 s after "done"). The running round
+4 loaded the old code, so a watcher on the pod (`exit-watch.sh`) ends the trainer two minutes after
+its log says "done"; the lab driver then fetches and stops the pod as usual.
+
 ## Question
 
 The round-3 oscillator recogniser (gated MLP, 30,000 updates, 2.3 passes over 886 h) was still
