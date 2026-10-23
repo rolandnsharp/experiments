@@ -155,6 +155,15 @@ ternary (a float arm at 2x answers it).
 0.043 → 0.032 at 1x, 2x, 4x: the gain from the rate is shrinking, so 4x is
 taken for C (an 8x arm not run, to save credit).
 
+**A at lr 2x (float, the fairness check), seed 0** (pod 87bthpz2cugrsj,
+07:30–08:10 UTC): **2.0157 bpb**, 0.033 better than the float control at 1x.
+The float model gains from the higher rate as much as the ternary one does,
+so most of the closing above was the rate, not ternary. At matched rate
+(2x / 2x) ternary costs **+0.076** (2.0916 vs 2.0157), about what it cost at
+1x / 1x (+0.079). Against ternary's best (4x, 2.0806) the gap to float 2x is
++0.065; float at 4x not run yet. The control's own rate (Diakosmos's
+PEAK_LR 0.003) is too low for 4L/32H at 3K updates.
+
 Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
 93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
