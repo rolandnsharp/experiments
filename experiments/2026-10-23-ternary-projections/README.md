@@ -126,7 +126,21 @@ scored bytes). The CORE bundle is never in training.
 
 ## Results
 
-(none yet)
+**B, same width, lr 1x, seed 0** (pod rm1oe4h6vyyx4s, 06:12–06:53 UTC):
+held-out over all 18,538,212 scored bytes **2.1280 bpb**, against the
+control's 2.0490: **+0.079**, a smaller loss than the predicted 0.10–0.25.
+Curve on the 256-window subset, ternary / control (text-pole-form polar
+seed 0) / gap: 500: 2.5515 / 2.447 / 0.10; 1000: 2.3195 / 2.221 / 0.10;
+1500: 2.2114 / 2.119 / 0.09; 2500: 2.1286 / 2.048 / 0.08; 3000: 2.1036 /
+2.028 / 0.076. The gap narrows through the run.
+
+3,385,688 parameters: 3,211,264 ternary (95%), 174,424 float. Model bytes:
+13.54 MB all float32, 6.77 MB all bfloat16; **1.15 MB** with the ternary
+weights packed at 2 bits and the rest bfloat16, 0.99 MB at 1.58 bits (5.9x
+under bfloat16). Zeros at the end: 26–27% of every qkv matrix, 33–39% of
+the out matrices (39% in the last block), about a third each of +1 and −1.
+Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
+93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
 Report beside bpb: parameters, model bytes at the arm's precision (ternary
 packed at 2 bits and at 1.58 bits; float at 16 and 32), multiply-adds per byte
