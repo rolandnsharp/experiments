@@ -6,7 +6,9 @@
 #   bash ~/field/launch-dk-full.sh            # prints the plan and the cost, starts nothing
 #   bash ~/field/launch-dk-full.sh go         # starts it
 # The launcher runs as `pod-self.sh roland` (an argument, so chain-v2.sh's wait for its own launcher
-# does not wait for this one), with its markers and diary in ~/field/roland/.
+# does not wait for this one), with its markers and diary in ~/field/roland/, its pod named roland-dkfull-*
+# (another session's ternary pods are roland-field-*). GPUS and CLOUDS from the environment pick the GPU
+# (default a 3090, community then secure); the cost estimate below is for a 3090 at $0.22/h.
 set -uo pipefail
 cd ~/field
 RUN=runs/polar-dense-14L95H-s0-u15360-b8-dk
@@ -38,7 +40,7 @@ echo "account balance \$${balance}; other pods spending \$${other}/h; needed wit
 python3 -c "import sys; sys.exit(0 if float('$balance') >= float('$need') else 1)" || { echo "NOT ENOUGH CREDIT: top up the account or stop the other pod first"; exit 1; }
 [ "${1:-}" = go ] || { echo "plan only; run with 'go' to start"; exit 0; }
 mkdir -p roland && rm -f roland/LEGS-RESOLVED
-export RP_HOME BUSY_PREFIX=roland-field MARKS=roland
+export RP_HOME POD_NAME=roland-dkfull BUSY_PREFIX=roland-dkfull MARKS=roland GPUS="${GPUS:-3090}" CLOUDS="${CLOUDS:-COMMUNITY SECURE}"
 export LEGS="polar:dense:15360:0" UPDATES=15360 LAYERS=14 HARMONICS=95 BATCH=8 SHARDS=5 POD_HOURS=$watchdog RESUME=1
 export EXTRA="--half --accumulate 8 --eval-every 640 --eval-windows 64 --final-windows 0" TAG=dk
 nohup bash ~/field/pod-self.sh roland > ~/field/roland/pod-self-launch.log 2>&1 < /dev/null & disown
