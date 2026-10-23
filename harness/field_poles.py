@@ -4,7 +4,7 @@ on Diakosmos's held-out OpenWebText bytes.
 
     field_poles.py train --variant real|cartesian|polar --bytes DIR --out DIR
         [--layers 4 --harmonics 32 --batch 16 --updates 3000 --eval-every 500 --shards N]
-        [--accumulate K] [--half] [--stop-at N]
+        [--accumulate K] [--half] [--stop-at N] [--ternary] [--lr-scale S]
 
 --accumulate K: an update is the mean gradient of K batches of --batch windows (the
 windows read in order), so --batch 16 --accumulate 4 is Diakosmos's 64 windows an
@@ -13,7 +13,9 @@ computes them (bfloat16 operands, binary32 accumulation; zara_poles.HALF and the
 oracle's newton_schulz_half). --stop-at N: after update N of the run's schedule (still
 the schedule for --updates), save the checkpoint, score the full held-out set
 (--final-windows) and stop, writing stopped-N.json; --resume continues the run. Without
-these flags the run is as before, bit for bit.
+these flags the run is as before, bit for bit. --ternary: the blocks' qkv and out
+projections ternary in the forward (zara_poles.TERNARY; BitNet b1.58, the optimizer
+keeps the latent float weights). --lr-scale S: the peak learning rate times S.
 
 The model, the optimizer and the scoring are zara_poles.py's (the audio
 harness, itself Diakosmos's oracle with the recurrence replaced); only the data
@@ -96,6 +98,8 @@ def show(b):
 def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     zara_poles.HALF = args.half
+    zara_poles.TERNARY = args.ternary
+    O.PEAK_LR = O.PEAK_LR * args.lr_scale
     c = O.Config(harmonics=args.harmonics, layers=args.layers, heads=7, kan=8, dt=0.3)
     out = args.out
     out.mkdir(parents=True, exist_ok=True)
@@ -112,7 +116,9 @@ def train(args):
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
         f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
         + (f' accumulate {args.accumulate} ({args.batch * args.accumulate} windows an update)' if args.accumulate > 1 else '')
-        + (' half (bfloat16 product operands, binary32 accumulation)' if args.half else ''))
+        + (' half (bfloat16 product operands, binary32 accumulation)' if args.half else '')
+        + (' ternary qkv/out projections' if args.ternary else '')
+        + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -221,6 +227,8 @@ def main():
     t.add_argument('--resume', action='store_true', help='continue from OUT/resume.pt when it exists')
     t.add_argument('--accumulate', type=int, default=1, help='batches of --batch windows an update (default 1)')
     t.add_argument('--half', action='store_true', help="the products and Newton-Schulz as Diakosmos's device computes them")
+    t.add_argument('--ternary', action='store_true', help="the blocks' qkv and out projections ternary in the forward (BitNet b1.58: absmean scale, straight-through gradient)")
+    t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')
     args = ap.parse_args()
     train(args)

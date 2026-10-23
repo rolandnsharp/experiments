@@ -48,6 +48,9 @@ CHUNK = 64
 # the matrix products as Diakosmos's device computes them (bfloat16 operands, binary32
 # accumulation and results) when set; field_poles.py --half sets it
 HALF = False
+# the blocks' qkv and out projections ternary in the forward (BitNet b1.58) when set;
+# field_poles.py --ternary sets it
+TERNARY = False
 GMIN = 0.0005          # Ambrosio's decay floor: |c| <= e^-gmin
 RADIUS = 0.9995        # Manfred's projection radius
 RATE = 16000
@@ -167,6 +170,19 @@ def half_product(x, w):
     return x @ w.T
 
 
+def ternary(w):
+    """BitNet b1.58: w's mean |w| times round(w / it) clipped to {-1, 0, +1}; the
+    gradient passes straight through to the latent float weights."""
+    s = w.abs().mean().clamp(min=1e-5)
+    q = (w / s).round().clamp(-1, 1) * s
+    return w + (q - w).detach()
+
+
+def projection(p, name):
+    """A block's projection weight as the forward uses it: ternary when TERNARY."""
+    return ternary(p[name]) if TERNARY else p[name]
+
+
 # ---- the recurrence, chunked ----
 def powers(logr, theta, n):
     """c^j for j = 0 .. n-1: ([H][L][n] real, imaginary)."""
@@ -233,7 +249,7 @@ def block(c, p, prefix, z, variant):
         qkv = torch.einsum('bthd,hed->bthe', u.view(B, T, H, dh), p[a + 'qkv_group.weight']).view(B, T, H, 3, dh).transpose(2, 3)
         qkv = qkv + p[a + 'qkv_proj.bias'].view(1, 1, 3, H, dh)
     else:
-        qkv = (half_product(u, p[a + 'qkv_proj.weight']) + p[a + 'qkv_proj.bias']).view(B, T, 3, H, dh)
+        qkv = (half_product(u, projection(p, a + 'qkv_proj.weight')) + p[a + 'qkv_proj.bias']).view(B, T, 3, H, dh)
     q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
     qh = torch.einsum('bthd,hld->bthl', q, p[a + 'q_harmonic_weight'])
     kh = torch.einsum('bthd,hld->bthl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
@@ -242,7 +258,7 @@ def block(c, p, prefix, z, variant):
     if a + 'out_group.weight' in p:
         temporal = torch.einsum('bthd,hed->bthe', read, p[a + 'out_group.weight']).reshape(B, T, D) + p[a + 'out_proj.bias']
     else:
-        temporal = half_product(read.reshape(B, T, D), p[a + 'out_proj.weight']) + p[a + 'out_proj.bias']
+        temporal = half_product(read.reshape(B, T, D), projection(p, a + 'out_proj.weight')) + p[a + 'out_proj.bias']
     n = O.normalize(z.view(B, T, O.GROUPS, W))
     pairs = O.GROUPS // 2
     th = c.dt * p[prefix + 'spatial.theta']
@@ -299,7 +315,7 @@ class Sampler:
             if a + 'qkv_group.weight' in p:
                 qkv = torch.einsum('hd,hed->he', u.view(H, dh), p[a + 'qkv_group.weight']).view(H, 3, dh).transpose(0, 1) + p[a + 'qkv_proj.bias'].view(3, H, dh)
             else:
-                qkv = (u @ p[a + 'qkv_proj.weight'].T + p[a + 'qkv_proj.bias']).view(3, H, dh)
+                qkv = (u @ projection(p, a + 'qkv_proj.weight').T + p[a + 'qkv_proj.bias']).view(3, H, dh)
             q, k, v = qkv[0], qkv[1], qkv[2]
             qh = torch.einsum('hd,hld->hl', q, p[a + 'q_harmonic_weight'])
             kh = torch.einsum('hd,hld->hl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
@@ -315,7 +331,7 @@ class Sampler:
             if a + 'out_group.weight' in p:
                 temporal = torch.einsum('hd,hed->he', read, p[a + 'out_group.weight']).reshape(-1) + p[a + 'out_proj.bias']
             else:
-                temporal = read.reshape(-1) @ p[a + 'out_proj.weight'].T + p[a + 'out_proj.bias']
+                temporal = read.reshape(-1) @ projection(p, a + 'out_proj.weight').T + p[a + 'out_proj.bias']
             n = O.normalize(z.view(O.GROUPS, W))
             pairs = O.GROUPS // 2
             th = c.dt * p[prefix + 'spatial.theta']
