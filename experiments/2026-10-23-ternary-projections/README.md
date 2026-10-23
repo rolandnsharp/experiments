@@ -194,6 +194,15 @@ ternary arm C wins by **−0.022** (1.9818), down from the −0.034 against floa
 check (1500: 2.0696; 2000: 2.0337; 2500: 1.9911). Against float polar 4x
 (2.0039, one seed): −0.021 and −0.022 at seeds 0 and 1.
 
+**CORE (smoke tier) for C seed 0**, scored on 4 lab CPU threads through
+core.roland.blah.dev (`core_server.py --ternary`), registered on evals.blah.dev
+as the separate unofficial model "Vidya ternary" (id _3-GrSlaIwF20j86AtFfrQ,
+attempt DAsVEMQCPx79FPNaZU8axQ): **CORE −0.0106**, chance level. Copa 0.54,
+arc_easy 0.28, arc_challenge 0.30, hellaswag 0.28, piqa 0.46, winogrande
+0.40, generation tasks 0. For scale: the float 4L/32H at 3K scored 0.004 on
+smoke (training-bytes-vs-bpb-and-core); at 98 MB of training no model in this
+family is above chance, so CORE does not separate them yet.
+
 Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
 93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
