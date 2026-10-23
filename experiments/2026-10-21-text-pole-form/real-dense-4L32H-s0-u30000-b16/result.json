@@ -1,0 +1,464 @@
+{
+ "variant": "real",
+ "mixing": "dense",
+ "layers": 4,
+ "harmonics": 32,
+ "params": 3370964,
+ "updates": 30000,
+ "batch": 16,
+ "trainBytesSeen": 983040000,
+ "shards": 2,
+ "trainBytes": 1001644862,
+ "seconds": 19342.502087831497,
+ "heldoutBpb": 1.8841459192949084,
+ "curve": [
+  {
+   "step": 500,
+   "bpb": 2.674314119040987,
+   "seconds": 319.53257417678833
+  },
+  {
+   "step": 1000,
+   "bpb": 2.2870769343390087,
+   "seconds": 640.0768082141876
+  },
+  {
+   "step": 1500,
+   "bpb": 2.1757439921752586,
+   "seconds": 960.8232295513153
+  },
+  {
+   "step": 2000,
+   "bpb": 2.1470052290127093,
+   "seconds": 1281.5860459804535
+  },
+  {
+   "step": 2500,
+   "bpb": 2.1202885034975587,
+   "seconds": 1603.395385503769
+  },
+  {
+   "step": 3000,
+   "bpb": 2.099967345190164,
+   "seconds": 1924.649174451828
+  },
+  {
+   "step": 3500,
+   "bpb": 2.066498838776116,
+   "seconds": 2245.5503182411194
+  },
+  {
+   "step": 4000,
+   "bpb": 2.046812248080284,
+   "seconds": 2566.242260456085
+  },
+  {
+   "step": 4500,
+   "bpb": 2.0405643817228722,
+   "seconds": 2886.6550011634827
+  },
+  {
+   "step": 5000,
+   "bpb": 2.0253661996237162,
+   "seconds": 3208.3127098083496
+  },
+  {
+   "step": 5500,
+   "bpb": 2.0485167842563587,
+   "seconds": 3527.7221381664276
+  },
+  {
+   "step": 6000,
+   "bpb": 2.019262271996161,
+   "seconds": 3846.3258140087128
+  },
+  {
+   "step": 6500,
+   "bpb": 1.9986124064728468,
+   "seconds": 4164.717531204224
+  },
+  {
+   "step": 7000,
+   "bpb": 1.9877158490626134,
+   "seconds": 4484.194789886475
+  },
+  {
+   "step": 7500,
+   "bpb": 1.9863366503173927,
+   "seconds": 4804.273530006409
+  },
+  {
+   "step": 8000,
+   "bpb": 1.9884909318743893,
+   "seconds": 5124.27682518959
+  },
+  {
+   "step": 8500,
+   "bpb": 1.9724656637094027,
+   "seconds": 5447.850963115692
+  },
+  {
+   "step": 9000,
+   "bpb": 1.9689471405233523,
+   "seconds": 5768.036560058594
+  },
+  {
+   "step": 9500,
+   "bpb": 1.9723847566210873,
+   "seconds": 6091.256721258163
+  },
+  {
+   "step": 10000,
+   "bpb": 1.9556463140241773,
+   "seconds": 6412.042679786682
+  },
+  {
+   "step": 10500,
+   "bpb": 1.9539935661238437,
+   "seconds": 6730.855180025101
+  },
+  {
+   "step": 11000,
+   "bpb": 1.9564988481478778,
+   "seconds": 7053.1825358867645
+  },
+  {
+   "step": 11500,
+   "bpb": 1.9573152981616442,
+   "seconds": 7372.567399978638
+  },
+  {
+   "step": 12000,
+   "bpb": 1.9412028777883328,
+   "seconds": 7690.440653800964
+  },
+  {
+   "step": 12500,
+   "bpb": 1.9377978685263098,
+   "seconds": 8010.2020127773285
+  },
+  {
+   "step": 13000,
+   "bpb": 1.9517055734302589,
+   "seconds": 8331.09521484375
+  },
+  {
+   "step": 13500,
+   "bpb": 1.9391775455982783,
+   "seconds": 8655.813990592957
+  },
+  {
+   "step": 14000,
+   "bpb": 1.9333273676231553,
+   "seconds": 8979.591608285904
+  },
+  {
+   "step": 14500,
+   "bpb": 1.9342556816023921,
+   "seconds": 9301.647245168686
+  },
+  {
+   "step": 15000,
+   "bpb": 1.9255808981907034,
+   "seconds": 9623.148648023605
+  },
+  {
+   "step": 15500,
+   "bpb": 1.9229724695718144,
+   "seconds": 9944.432704925537
+  },
+  {
+   "step": 16000,
+   "bpb": 1.9237517713329944,
+   "seconds": 10263.564989805222
+  },
+  {
+   "step": 16500,
+   "bpb": 1.9157598074153515,
+   "seconds": 10585.814407587051
+  },
+  {
+   "step": 17000,
+   "bpb": 1.9086567627009823,
+   "seconds": 10906.260296106339
+  },
+  {
+   "step": 17500,
+   "bpb": 1.9168314743085404,
+   "seconds": 11227.380396604538
+  },
+  {
+   "step": 18000,
+   "bpb": 1.9127678574850382,
+   "seconds": 11547.93939948082
+  },
+  {
+   "step": 18500,
+   "bpb": 1.9000464351621622,
+   "seconds": 11868.274710655212
+  },
+  {
+   "step": 19000,
+   "bpb": 1.9016419665843372,
+   "seconds": 12191.50803232193
+  },
+  {
+   "step": 19500,
+   "bpb": 1.891609664990352,
+   "seconds": 12513.155935764313
+  },
+  {
+   "step": 20000,
+   "bpb": 1.8925634377763745,
+   "seconds": 12832.807212114334
+  },
+  {
+   "step": 20500,
+   "bpb": 1.8906821571797912,
+   "seconds": 13152.22779917717
+  },
+  {
+   "step": 21000,
+   "bpb": 1.8997336255925321,
+   "seconds": 13472.783988714218
+  },
+  {
+   "step": 21500,
+   "bpb": 1.886103350202256,
+   "seconds": 13792.592856168747
+  },
+  {
+   "step": 22000,
+   "bpb": 1.8845417531068793,
+   "seconds": 14114.832577943802
+  },
+  {
+   "step": 22500,
+   "bpb": 1.8816051600923127,
+   "seconds": 14435.962757349014
+  },
+  {
+   "step": 23000,
+   "bpb": 1.8804656729156475,
+   "seconds": 14757.481654167175
+  },
+  {
+   "step": 23500,
+   "bpb": 1.8857306530489204,
+   "seconds": 15076.315159320831
+  },
+  {
+   "step": 24000,
+   "bpb": 1.8795504779879968,
+   "seconds": 15395.51533818245
+  },
+  {
+   "step": 24500,
+   "bpb": 1.8743914714144023,
+   "seconds": 15716.29739522934
+  },
+  {
+   "step": 25000,
+   "bpb": 1.8710462959915062,
+   "seconds": 16037.022331476212
+  },
+  {
+   "step": 25500,
+   "bpb": 1.8708467316230113,
+   "seconds": 16358.15573835373
+  },
+  {
+   "step": 26000,
+   "bpb": 1.871802272605663,
+   "seconds": 16677.793565273285
+  },
+  {
+   "step": 26500,
+   "bpb": 1.8718273014558213,
+   "seconds": 16998.749222517014
+  },
+  {
+   "step": 27000,
+   "bpb": 1.8662094612930984,
+   "seconds": 17321.253345489502
+  },
+  {
+   "step": 27500,
+   "bpb": 1.8641644424639778,
+   "seconds": 17640.876920938492
+  },
+  {
+   "step": 28000,
+   "bpb": 1.8645385262274359,
+   "seconds": 17961.620275259018
+  },
+  {
+   "step": 28500,
+   "bpb": 1.862690578018373,
+   "seconds": 18286.662794828415
+  },
+  {
+   "step": 29000,
+   "bpb": 1.8621247550970341,
+   "seconds": 18607.275223970413
+  },
+  {
+   "step": 29500,
+   "bpb": 1.8598533748526314,
+   "seconds": 18928.1605591774
+  },
+  {
+   "step": 30000,
+   "bpb": 1.8600727548471803,
+   "seconds": 19247.48507642746
+  }
+ ],
+ "samples": {
+  "1.0": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " including his campaign riperiauf ground to help by it.\n\nSpeaking at all of the Monteen systematical highest sources in this region in the open station, which is in 1994, Wilmerton-Hink2nowood stations here to develop you can read a duties as wideout, syno"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "round feed\u2019s free.\n\n\u201cWe traumatized presents at their car to which include I\u2019m going to the possibilities and rhetoric been spokesman on this stress is nice difficult by potential system.\u201d\n\nIan Higher-camera Josh of Cuts-American Honor Monthod. It "
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Files (DOL) insight infection (@IJMato Toyot###1). Once Is there swiftly is absorble that Defines a compute to find that continues to succeed demolish facing political\u2014the obvious commission merely numbers the death or pros (not willingit), \u201cstun rat"
+   }
+  ],
+  "0.8": [
+   {
+    "prompt": "oked at the attachment plate above more carefully, it became apparent that two of the screw holes on one side of the lens were bent downward slightly.\n\nTwo holes on the opposite side were bent upward slightly. This plate is attaching two heavy lens-halves,",
+    "generated": " and revenuered to be involved in the left to the incubation of the moment. The two warnings of the conviction in the secret.\n\nGoalked with which he starts out there are examples. On the raid, they are being such as not a brother safe has been a parallel t"
+   },
+   {
+    "prompt": " be welcomed, but any body that takes on the task will have to walk a line between nurturing the nascent movement and throttling it.<|endoftext|>On the afternoon of 4th March 1966, a squadron of jet fighters hovered over Aizawl and dropped bombs leaving a ",
+    "generated": "lot of planets in the new himself added by far to fail to the large photographer to make it the first microcinals in the nights to make control the two years of how welfare who watched the animals of how many records have been part of the direction of thei"
+   },
+   {
+    "prompt": "er 2, 2016\n\n(6) It assumes any breach of this overbroad AF agreement causes \"irreparable harm\" - fully indemnified, of course. pic.twitter.com/IXC3W3ZJAr \u2014 Rachel Sklar (@rachelsklar) September 2, 2016\n\n(7) Even by the grossly permissive standards of Cit",
+    "generated": "y Lock, I don't she suddenly dictated an IS-NP like exploitation for the NPC exit may complete seal that had almost teached the preached support for us to be as a required attitude and learn this current inconstruction of the new team in the growth of the "
+   }
+  ]
+ },
+ "block0Poles": {
+  "periodBytes": [
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0,
+   6283185664.0
+  ],
+  "decayBytes": [
+   1.9398493766784668,
+   2.3404369354248047,
+   2.382211208343506,
+   2.179316282272339,
+   1.2701451778411865,
+   1.3102952241897583,
+   1.1111944913864136,
+   1.0445013046264648,
+   1.8596349954605103,
+   2.239668130874634,
+   2.2792887687683105,
+   2.086839199066162,
+   1.2235751152038574,
+   1.2617496252059937,
+   1.0723624229431152,
+   1.0088692903518677,
+   1.88481867313385,
+   2.271299123764038,
+   2.3115952014923096,
+   2.1158690452575684,
+   1.238206148147583,
+   1.2770004272460938,
+   1.084566354751587,
+   1.0200694799423218,
+   2.165861129760742,
+   2.6246249675750732,
+   2.6724960803985596,
+   2.440037965774536,
+   1.4009066820144653,
+   1.4466496706008911,
+   1.2200498580932617,
+   1.1442999839782715,
+   1.6298032999038696,
+   1.9512946605682373,
+   1.9847782850265503,
+   1.8220828771591187,
+   1.0895519256591797,
+   1.1221003532409668,
+   0.9603819847106934,
+   0.9060067534446716,
+   2.02614688873291,
+   2.4489052295684814,
+   2.4930033683776855,
+   2.278841257095337,
+   1.3201475143432617,
+   1.3624286651611328,
+   1.1528491973876953,
+   1.082704782485962,
+   1.8364684581756592,
+   2.210576057434082,
+   2.249575614929199,
+   2.0601375102996826,
+   1.2101072072982788,
+   1.247712254524231,
+   1.0611255168914795,
+   0.9985548853874207
+  ]
+ }
+}

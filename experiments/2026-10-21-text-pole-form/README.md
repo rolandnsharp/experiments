@@ -1,9 +1,8 @@
 # Pole form on OpenWebText bytes: real decay vs polar complex pole
 
 **Date.** 2026-10-21 (seed 0, secure 3090), 2026-10-21/22 (seed 1 and the long
-real arm, community 3090). **Status.** done at 3K updates with two seeds; the
-30K real arm was stopped at 15.7K (pod moved to Ajax's 3070 rule) and its
-curve to 13.5K is recorded.
+real arm, community 3090). **Status.** done at 3K updates with two seeds; done at
+30K updates with seed 0 (2026-10-23); the 30K real arm's seed 1 is queued.
 
 ## Question
 
@@ -76,6 +75,21 @@ real 30K arm's partial curve, same subset, seed 0: at 13,500 updates real
 1.9392 vs polar 1.9021, gap 0.037. (The real arm's `checkpoint.json` holds its
 curve to 13,500; `params.pt` at that step is on the lab.)
 
+At a full pass (30,000 updates, 983 MB, one pass over shards 0–1), seed 0,
+the real arm rerun from the start on a community 3090 (pod drvotwvc0wxn87,
+5.4 h, `real-dense-4L32H-s0-u30000-b16/`), held-out over all 18.5 M scored
+bytes:
+
+| updates | real | polar | gap |
+|---|---|---|---|
+| 30,000 | 1.8841 | 1.8469 | **0.037** |
+
+The subset curve at the same updates (real / polar / gap): 3,000: 2.1000 /
+2.0677 / 0.032; 9,000: 1.9689 / 1.9329 / 0.036; 15,000: 1.9256 / 1.8898 /
+0.036; 21,000: 1.8997 / 1.8625 / 0.037; 27,000: 1.8662 / 1.8277 / 0.039;
+30,000: 1.8601 / 1.8244 / 0.036. The gap holds between 0.032 and 0.039 the
+whole way rather than closing.
+
 Compute: real 3.60 M MAC/byte, polar 3.62 M; training FLOP 2.12e15 vs
 2.14e15 per 3K arm.
 
@@ -105,17 +119,17 @@ by M / (1 − ‖c‖) for bounded inputs. Measured: every bpb number, two seeds
 
 Prediction held: polar wins 0.036–0.043 bpb at 3K updates, reproduced at a
 second seed (the two arms' seed-to-seed spread is under 0.01, so the gap is
-real). At 13.5K updates the gap is 0.037 on one seed, so it had not shrunk by
-then. The expectation that it shrinks at scale is not yet tested beyond that.
+real). At a full pass (30K updates) the gap is 0.037 on seed 0: the
+expectation, written before the run, that the gain shrinks with training was
+wrong at this size; it held steady. Whether it shrinks with model size is
+the diakosmos-size-pole experiment's question.
 
 ## What it changes
 
 The polar pole is the kernel's recurrence in Alpha (Vidya.Pole, Vidya.Cell,
 PoleRecurrenceSM86). This is the headline experiment: the one variable that
 separates Vidya from Diakosmos, at equal parameters and equal multiply-adds
-per byte, everything else his. Still owed for the claim at scale: the real
-arm at 30K (seed 0, queued behind the 6L/64H run, `chain-real30k.sh`) and a
-second seed of it, so the 30K gap rests on two seeds as the 3K gap does. The
-verdict then reads against the polar 30K run (1.8469) and its seed 1. The gain
+per byte, everything else his. Still owed: a second seed of the 30K real arm
+(queued), so the 30K gap rests on two seeds as the 3K gap does. The gain
 is small; the case for the architecture rests more on its compute profile
 than on the pole.
