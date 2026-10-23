@@ -45,6 +45,9 @@ import diakosmos_oracle as O  # noqa: E402
 import mulaw  # noqa: E402
 
 CHUNK = 64
+# the matrix products as Diakosmos's device computes them (bfloat16 operands, binary32
+# accumulation and results) when set; field_poles.py --half sets it
+HALF = False
 GMIN = 0.0005          # Ambrosio's decay floor: |c| <= e^-gmin
 RADIUS = 0.9995        # Manfred's projection radius
 RATE = 16000
@@ -124,6 +127,46 @@ def project(p, variant):
                 b.mul_(s)
 
 
+# ---- the products ----
+class FastHalfProduct(torch.autograd.Function):
+    """O.HalfProduct with the same numbers on tensor cores: the operands are rounded to
+    bfloat16 and held as binary32, so a TF32 product multiplies them exactly (TF32 keeps 10
+    mantissa bits, bfloat16 has 7) and accumulates in binary32; TF32 is enabled for these
+    products only, every other product stays binary32."""
+
+    @staticmethod
+    def forward(ctx, x, w):
+        xb, wb = O.bf16(x), O.bf16(w)
+        ctx.save_for_backward(xb, wb)
+        with tf32():
+            return xb @ wb.T
+
+    @staticmethod
+    def backward(ctx, g):
+        xb, wb = ctx.saved_tensors
+        gb = O.bf16(g)
+        with tf32():
+            dx = gb @ wb
+            dw = gb.reshape(-1, gb.shape[-1]).T @ xb.reshape(-1, xb.shape[-1])
+        return dx, dw
+
+
+class tf32:
+    def __enter__(self):
+        self.before = torch.backends.cuda.matmul.allow_tf32
+        torch.backends.cuda.matmul.allow_tf32 = True
+
+    def __exit__(self, *exc):
+        torch.backends.cuda.matmul.allow_tf32 = self.before
+
+
+def half_product(x, w):
+    """x w': binary32 unless HALF, then as the device computes it."""
+    if HALF:
+        return FastHalfProduct.apply(x, w)
+    return x @ w.T
+
+
 # ---- the recurrence, chunked ----
 def powers(logr, theta, n):
     """c^j for j = 0 .. n-1: ([H][L][n] real, imaginary)."""
@@ -190,7 +233,7 @@ def block(c, p, prefix, z, variant):
         qkv = torch.einsum('bthd,hed->bthe', u.view(B, T, H, dh), p[a + 'qkv_group.weight']).view(B, T, H, 3, dh).transpose(2, 3)
         qkv = qkv + p[a + 'qkv_proj.bias'].view(1, 1, 3, H, dh)
     else:
-        qkv = (O.product(u, p[a + 'qkv_proj.weight'], False) + p[a + 'qkv_proj.bias']).view(B, T, 3, H, dh)
+        qkv = (half_product(u, p[a + 'qkv_proj.weight']) + p[a + 'qkv_proj.bias']).view(B, T, 3, H, dh)
     q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
     qh = torch.einsum('bthd,hld->bthl', q, p[a + 'q_harmonic_weight'])
     kh = torch.einsum('bthd,hld->bthl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
@@ -199,7 +242,7 @@ def block(c, p, prefix, z, variant):
     if a + 'out_group.weight' in p:
         temporal = torch.einsum('bthd,hed->bthe', read, p[a + 'out_group.weight']).reshape(B, T, D) + p[a + 'out_proj.bias']
     else:
-        temporal = O.product(read.reshape(B, T, D), p[a + 'out_proj.weight'], False) + p[a + 'out_proj.bias']
+        temporal = half_product(read.reshape(B, T, D), p[a + 'out_proj.weight']) + p[a + 'out_proj.bias']
     n = O.normalize(z.view(B, T, O.GROUPS, W))
     pairs = O.GROUPS // 2
     th = c.dt * p[prefix + 'spatial.theta']
@@ -227,7 +270,7 @@ def forward(c, p, table, x, variant, checkpoint=False):
     mean = fg.cumsum(dim=1) / counts
     cos = (O.normalize(fg) * O.normalize(mean)).sum(-1)
     length = mean.norm(dim=-1)
-    return O.product(torch.cat([f, cos, length], dim=-1), p['head.weight'], False)
+    return half_product(torch.cat([f, cos, length], dim=-1), p['head.weight'])
 
 
 def loss_of(c, p, table, w, variant, checkpoint=False):

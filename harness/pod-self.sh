@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rent ONE community RTX 3070, or a 3090 when no 3070 is in stock (Ajax, sshmail #3282 and after), through the GraphQL
+# Rent ONE community RTX 3070, or a 3080 or 3090 when no 3070 is in stock (Ajax, sshmail #3282; Roland 2026-10-20), through the GraphQL
 # API and let it drive itself: pod-self-driver.sh runs as the container
 # command (it pulls the data from the lab, trains, pushes results back and
 # stops the pod). Retries every 5 minutes for up to 8 hours. The pod writes
@@ -7,7 +7,7 @@
 # ~/field/pod-self.log. A pod that disappears mid-run (a community host going
 # away) is replaced, up to four times, by another that continues the run from
 # the lab's latest copy of its checkpoint (the driver's RESUME). Environment:
-# LEGS UPDATES LAYERS HARMONICS BATCH SHARDS POD_HOURS as the driver reads them.
+# LEGS UPDATES LAYERS HARMONICS BATCH SHARDS POD_HOURS EXTRA TAG as the driver reads them.
 # Run on the lab:
 #   nohup bash ~/field/pod-self.sh > ~/field/pod-self-launch.log 2>&1 < /dev/null & disown
 set -uo pipefail
@@ -15,6 +15,7 @@ cd ~/field
 rm -f POD-DONE POD-ID POD-RETRY pod-self.log
 export LEGS=${LEGS:-"real:dense polar:dense polar:grouped"} UPDATES=${UPDATES:-3000} POD_HOURS=${POD_HOURS:-6}
 export LAYERS=${LAYERS:-4} HARMONICS=${HARMONICS:-32} BATCH=${BATCH:-16} SHARDS=${SHARDS:-0} RESUME=${RESUME:-0}
+export EXTRA=${EXTRA:-} TAG=${TAG:-}
 export RUNPOD_KEY=$(grep -i apikey ~/.runpod/config.toml | sed 's/.*= *//; s/["'"'"']//g' | tr -d ' ')
 export LAB_KEY_B64=$(base64 -w0 ~/.ssh/pod_upload)
 export DRIVER_B64=$(base64 -w0 ~/field/pod-self-driver.sh)
@@ -41,7 +42,7 @@ pods = q('query { myself { pods { name desiredStatus } } }')['data']['myself']['
 busy = [p['name'] for p in pods if p['name'].startswith('roland-') and p['desiredStatus'] == 'RUNNING']
 if busy:
     print('busy ' + ' '.join(busy)); sys.exit(0)
-env = [{'key': k, 'value': os.environ[k]} for k in ('LAB_KEY_B64', 'DRIVER_B64', 'LEGS', 'UPDATES', 'POD_HOURS', 'LAYERS', 'HARMONICS', 'BATCH', 'SHARDS', 'RESUME')]
+env = [{'key': k, 'value': os.environ[k]} for k in ('LAB_KEY_B64', 'DRIVER_B64', 'LEGS', 'UPDATES', 'POD_HOURS', 'LAYERS', 'HARMONICS', 'BATCH', 'SHARDS', 'RESUME', 'EXTRA', 'TAG')]
 inp = dict(cloudType='COMMUNITY', gpuCount=1, volumeInGb=0, containerDiskInGb=30, minVcpuCount=1, minMemoryInGb=8,
            gpuTypeId=f'NVIDIA GeForce RTX {gpu}', name=f'roland-field-{gpu}',
            imageName='runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04',
@@ -76,8 +77,9 @@ remove() { ~/.local/bin/runpodctl remove pod "$1" 2>&1 | tail -1; }
 resolved_legs() {  # the legs the driver resolved (LEGS-RESOLVED) that have no result yet; sets BATCH to theirs
   local v m u sd b name out=""
   while read -r spec b; do
-    IFS=: read -r v m u sd <<< "$spec"; name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b
+    IFS=: read -r v m u sd <<< "$spec"; name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b${TAG:+-$TAG}
     [ -f runs/$name/result.json ] && continue
+    ls runs/$name/stopped-*.json > /dev/null 2>&1 && continue
     case " $out " in *" $spec "*) ;; *) out="$out $spec"; BATCH=$b ;; esac
   done < LEGS-RESOLVED
   echo $out
@@ -85,7 +87,7 @@ resolved_legs() {  # the legs the driver resolved (LEGS-RESOLVED) that have no r
 deadline=$(( $(date +%s) + 8 * 3600 ))
 drops=0
 while [ "$(date +%s)" -lt "$deadline" ]; do
-  for gpu in 3070 3090; do
+  for gpu in 3070 3080 3090; do
     R=$(deploy $gpu)
     case "$R" in
       pod\ *)
@@ -103,9 +105,12 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
           fi
         done
         if [ -f POD-RETRY ]; then
-          echo "== $(date -u +%H:%M) pod $PID had no CUDA on machine $MACHINE; removing it, remembering the machine, renting another"
+          echo "== $(date -u +%H:%M) pod $PID gave up on machine $MACHINE (no CUDA, or a leg that kept failing); removing it, remembering the machine, renting another"
           echo "$MACHINE" >> bad-machines
           sleep 20; remove "$PID"; rm -f POD-RETRY POD-ID
+          # legs the driver had resolved continue from their checkpoints
+          if [ -f LEGS-RESOLVED ]; then export RESUME=1; export LEGS="$(resolved_legs)"; export BATCH; echo "== continuing legs:$LEGS at batch $BATCH from their checkpoints"; fi
+          [ -f LEGS-RESOLVED ] && [ -z "${LEGS// /}" ] && { echo "every resolved leg has its result" | tee POD-DONE; exit 0; }
           sleep 120; continue 2
         fi
         if [ $dropped = 1 ]; then

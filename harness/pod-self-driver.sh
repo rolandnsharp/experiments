@@ -11,7 +11,10 @@
 #   UPDATES      updates a leg when the leg does not say (default 3000)
 #   LAYERS HARMONICS BATCH SHARDS   the model and the data (default 4 32 16 0 = every shard)
 #   RESUME       1: a leg whose runs/NAME/resume.pt is on the lab continues from it
+#   a leg that fails with a checkpoint behind it is retried from it twice, then the host is handed back
 #   POD_HOURS    watchdog (default 6)
+#   EXTRA        more field_poles.py train arguments for every leg (default none), e.g. "--half --accumulate 8"
+#   TAG          appended to every leg's run directory name (default none)
 set -uo pipefail
 LAB=roland@158.69.195.38
 LP=2222
@@ -19,6 +22,7 @@ LEGS=${LEGS:-"real:dense polar:dense polar:grouped"}
 UPDATES=${UPDATES:-3000}
 LAYERS=${LAYERS:-4}; HARMONICS=${HARMONICS:-32}; BATCH=${BATCH:-16}; SHARDS=${SHARDS:-0}; RESUME=${RESUME:-0}
 POD_HOURS=${POD_HOURS:-6}
+EXTRA=${EXTRA:-}; TAG=${TAG:-}
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
 echo "$LAB_KEY_B64" | base64 -d > /root/.ssh/lab && chmod 600 /root/.ssh/lab
 SSH="ssh -i /root/.ssh/lab -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -p $LP"
@@ -50,7 +54,7 @@ push() {  # copy the runs (results, logs, checkpoints) to the lab
 train() {  # train NAME VARIANT MIXING SEED UPDATES BATCH [extra args]
   local name=$1 v=$2 m=$3 sd=$4 u=$5 b=$6; shift 6
   python field_poles.py train --variant $v --mixing $m --seed $sd --bytes owt --out /root/field/runs/$name \
-    --layers $LAYERS --harmonics $HARMONICS --batch $b --updates $u --eval-every 500 --checkpoint --shards $SHARDS "$@" \
+    --layers $LAYERS --harmonics $HARMONICS --batch $b --updates $u --eval-every 500 --checkpoint --shards $SHARDS $EXTRA "$@" \
     > /root/field/runs/$name.log 2>&1
 }
 # a leg is variant:mixing[:updates[:seed]]; its run directory names the model, seed, updates and batch
@@ -79,7 +83,7 @@ PY
       say "benchmark: $step s an update at batch $b ($(nvidia-smi --query-gpu=memory.used --format=csv,noheader | head -1) used); $hours h gives $u updates, $(python -c "print(round($u * $b * 2048 / 1e9, 2))") GB of bytes"
       ;;
   esac
-  name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b
+  name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b${TAG:+-$TAG}
   # the resolved leg, so a launcher that rents another host after a drop can continue it
   lab "echo \"$v:$m:$u:$sd $b\" >> ~/field/LEGS-RESOLVED"
   resume=""
@@ -90,7 +94,26 @@ PY
   fi
   say "leg $name starting"
   train $name $v $m $sd $u $b $resume
-  echo "$name exit=$?" >> /root/field/runs/RUN-DONE
+  rc=$?
+  # a leg that dies with a checkpoint behind it (a CUDA fault on a community host, most often) continues
+  # from the checkpoint, twice; a host that keeps failing is handed back to the launcher with RESUME
+  tries=0
+  while [ $rc -ne 0 ] && [ -f /root/field/runs/$name/resume.pt ] && [ $tries -lt 2 ]; do
+    tries=$((tries + 1))
+    say "leg $name failed (exit $rc): $(grep -m1 -E "Error|error" /root/field/runs/$name.log | cut -c1-120); retry $tries from its checkpoint ($(cut -c1-40 /root/field/runs/$name/checkpoint.json))"
+    push
+    mv /root/field/runs/$name.log /root/field/runs/$name.try$tries.log
+    train $name $v $m $sd $u $b --resume
+    rc=$?
+  done
+  if [ $rc -ne 0 ] && [ -f /root/field/runs/$name/resume.pt ]; then
+    push
+    say "leg $name failed three times on this host; asking the launcher for another host to continue from the checkpoint"
+    lab "echo $RUNPOD_POD_ID > ~/field/POD-RETRY"
+    runpodctl stop pod "$RUNPOD_POD_ID"
+    exit 1
+  fi
+  echo "$name exit=$rc" >> /root/field/runs/RUN-DONE
   python compute_cost.py /root/field/runs/$name >> /root/field/runs/$name.log 2>&1
   push
   say "leg $name done: $(grep "final held-out" /root/field/runs/$name/train.log 2>/dev/null | tail -1)"

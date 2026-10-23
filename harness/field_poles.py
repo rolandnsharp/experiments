@@ -4,6 +4,16 @@ on Diakosmos's held-out OpenWebText bytes.
 
     field_poles.py train --variant real|cartesian|polar --bytes DIR --out DIR
         [--layers 4 --harmonics 32 --batch 16 --updates 3000 --eval-every 500 --shards N]
+        [--accumulate K] [--half] [--stop-at N]
+
+--accumulate K: an update is the mean gradient of K batches of --batch windows (the
+windows read in order), so --batch 16 --accumulate 4 is Diakosmos's 64 windows an
+update. --half: the matrix products and Muon's Newton-Schulz as Diakosmos's device
+computes them (bfloat16 operands, binary32 accumulation; zara_poles.HALF and the
+oracle's newton_schulz_half). --stop-at N: after update N of the run's schedule (still
+the schedule for --updates), save the checkpoint, score the full held-out set
+(--final-windows) and stop, writing stopped-N.json; --resume continues the run. Without
+these flags the run is as before, bit for bit.
 
 The model, the optimizer and the scoring are zara_poles.py's (the audio
 harness, itself Diakosmos's oracle with the recurrence replaced); only the data
@@ -24,6 +34,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diakosmos_oracle as O  # noqa: E402
+import zara_poles  # noqa: E402
 from zara_poles import Sampler, loss_of, make_params, pole, project, score  # noqa: E402
 
 
@@ -84,6 +95,7 @@ def show(b):
 
 def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    zara_poles.HALF = args.half
     c = O.Config(harmonics=args.harmonics, layers=args.layers, heads=7, kan=8, dt=0.3)
     out = args.out
     out.mkdir(parents=True, exist_ok=True)
@@ -98,8 +110,11 @@ def train(args):
     p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing).items()}
     count = sum(v.numel() for v in p.values())
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
-        f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}')
-    upd = O.Update(p, args.updates)
+        f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
+        + (f' accumulate {args.accumulate} ({args.batch * args.accumulate} windows an update)' if args.accumulate > 1 else '')
+        + (' half (bfloat16 product operands, binary32 accumulation)' if args.half else ''))
+    upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
+    per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
     t0 = time.time()
     curve = []
@@ -115,11 +130,21 @@ def train(args):
         t0 = time.time() - r['seconds']
         say(f'resumed at step {first} ({r["seconds"]:.0f} s so far, held-out {curve[-1]["bpb"]:.4f} bpb)')
     for step in range(first, args.updates):
-        w = torch.from_numpy(stream.windows(step * args.batch, args.batch).astype(np.int64)).to(device)
         for v in p.values():
             v.requires_grad_(True)
-        l = loss_of(c, p, table, w, args.variant, checkpoint=args.checkpoint)
-        l.backward()
+        if args.accumulate == 1:
+            w = torch.from_numpy(stream.windows(step * args.batch, args.batch).astype(np.int64)).to(device)
+            l = loss_of(c, p, table, w, args.variant, checkpoint=args.checkpoint)
+            l.backward()
+        else:
+            # the mean over the update's windows: each batch's mean loss over K, summed
+            total = 0.0
+            for j in range(args.accumulate):
+                w = torch.from_numpy(stream.windows(step * per + j * args.batch, args.batch).astype(np.int64)).to(device)
+                lj = loss_of(c, p, table, w, args.variant, checkpoint=args.checkpoint) / args.accumulate
+                lj.backward()
+                total += lj.item()
+            l = torch.tensor(total)
         grads = {k: v.grad for k, v in p.items()}
         with torch.no_grad():
             p = {k: v.detach() for k, v in p.items()}
@@ -138,12 +163,23 @@ def train(args):
                         'state': {k: {n: (v.cpu() if torch.is_tensor(v) else v) for n, v in st.items()} for k, st in upd.state.items()},
                         'step': upd.step, 'curve': curve, 'seconds': time.time() - t0}, out / 'resume.pt.tmp')
             os.replace(out / 'resume.pt.tmp', out / 'resume.pt')
+        if args.stop_at and step + 1 == args.stop_at:
+            if (step + 1) % args.eval_every != 0 and step != args.updates - 1:
+                raise SystemExit('--stop-at must fall on a held-out check (a multiple of --eval-every)')
+            final = stream.heldout if args.final_windows == 0 else stream.heldout[:args.final_windows]
+            full = score(c, p, table, final, args.variant, device)
+            say(f'stopped after update {step + 1} of {args.updates}: held-out ({final.shape[0]} of {stream.heldout.shape[0]} windows) {full:.4f} bpb')
+            (out / f'stopped-{step + 1}.json').write_text(json.dumps({'step': step + 1, 'updates': args.updates, 'heldoutBpb': full,
+                                                                      'windows': int(final.shape[0]), 'seconds': time.time() - t0,
+                                                                      'params': count, 'curve': curve}) + '\n')
+            return
     torch.save({k: v.cpu() for k, v in p.items()}, out / 'params.pt')
     final = stream.heldout if args.final_windows == 0 else stream.heldout[:args.final_windows]
     full = score(c, p, table, final, args.variant, device)
     say(f'final held-out ({final.shape[0]} of {stream.heldout.shape[0]} windows, {stream.scored} scored bytes in all) {full:.4f} bpb')
     result = {'variant': args.variant, 'mixing': args.mixing, 'layers': c.layers, 'harmonics': c.harmonics, 'params': count,
-              'updates': args.updates, 'batch': args.batch, 'trainBytesSeen': args.updates * args.batch * O.FULL_CONTEXT,
+              'updates': args.updates, 'batch': args.batch, 'accumulate': args.accumulate, 'half': args.half,
+              'trainBytesSeen': args.updates * per * O.FULL_CONTEXT,
               'shards': stream.shards, 'trainBytes': stream.cat.size,
               'seconds': time.time() - t0, 'heldoutBpb': full, 'curve': curve, 'samples': {}}
     logr, theta = pole(p, 'blocks.0.temporal.attn.', args.variant)
@@ -183,6 +219,9 @@ def main():
     t.add_argument('--final-windows', type=int, default=0, help='score this many held-out windows at the end (0: all)')
     t.add_argument('--shards', type=int, default=0, help='train on the first N shards of the manifest (0: all)')
     t.add_argument('--resume', action='store_true', help='continue from OUT/resume.pt when it exists')
+    t.add_argument('--accumulate', type=int, default=1, help='batches of --batch windows an update (default 1)')
+    t.add_argument('--half', action='store_true', help="the products and Newton-Schulz as Diakosmos's device computes them")
+    t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')
     args = ap.parse_args()
     train(args)
 
