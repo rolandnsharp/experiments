@@ -875,7 +875,7 @@ static int stream(Model *m, const LM *lm, float alpha, float beta, int B, int K)
 
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: %s MODEL.bin FILE.wav [--dump OUT.f32] [--bench] [--gain G]\n", argv[0]); return 1; }
-    const char *dump = NULL, *lmpath = NULL, *logpfile = NULL; int bench = 0, beam = 32; float gain = 0, alpha = 0.5f, beta = 0.5f; int K = 16;
+    const char *dump = NULL, *lmpath = NULL, *logpfile = NULL; int bench = 0, beam = 32; float gain = 0, alpha = 0.5f, beta = 1.0f;   /* tuned on dev-clean */ int K = 16;
     for (int i = 3; i < argc; i++) {
         if (!strcmp(argv[i], "--dump") && i + 1 < argc) dump = argv[++i];
         else if (!strcmp(argv[i], "--bench")) bench = 1;
