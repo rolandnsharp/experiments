@@ -81,10 +81,14 @@ HARMONICS=95 BATCH=8 SHARDS=1 EXTRA="--half --accumulate 8 --stop-at 640
 
 ## Hardware and cost
 
-One community RTX 3090 ($0.22/h), the 640-update legs after the 30K control.
-Cost not yet known: the first leg's step time sets it, and with it whether
-the full 15,360-update polar run (from the 640 checkpoint, `--resume`) is a
-day or several. His run took 24.5 hours on a 3070 with his own kernels.
+One community RTX 3090 ($0.22/h), the 640-update legs after the 30K control,
+on the shared lab account. The full 15,360-update polar run (from the 640
+checkpoint, `--resume`) runs on Roland's own RunPod account (Roland,
+2026-10-23), started by hand after the 640-update verdict with
+`harness/launch-dk-full.sh`, which sizes the run from the 640-update leg's
+step time and refuses to start unless the account's balance covers it, the
+account's other pods meanwhile, and $3 of margin. Cost not yet known: the
+step time sets it. His run took 24.5 hours on a 3070 with his own kernels.
 
 ## Data
 

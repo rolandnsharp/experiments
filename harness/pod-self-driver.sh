@@ -15,6 +15,9 @@
 #   POD_HOURS    watchdog (default 6)
 #   EXTRA        more field_poles.py train arguments for every leg (default none), e.g. "--half --accumulate 8"
 #   TAG          appended to every leg's run directory name (default none)
+#   MARKS        the lab directory under ~/field for this launcher's markers and diary (POD-DONE,
+#                POD-RETRY, LEGS-RESOLVED, pod-self.log; default ., ~/field itself), so launchers on
+#                two accounts can run at once
 set -uo pipefail
 LAB=roland@158.69.195.38
 LP=2222
@@ -22,20 +25,20 @@ LEGS=${LEGS:-"real:dense polar:dense polar:grouped"}
 UPDATES=${UPDATES:-3000}
 LAYERS=${LAYERS:-4}; HARMONICS=${HARMONICS:-32}; BATCH=${BATCH:-16}; SHARDS=${SHARDS:-0}; RESUME=${RESUME:-0}
 POD_HOURS=${POD_HOURS:-6}
-EXTRA=${EXTRA:-}; TAG=${TAG:-}
+EXTRA=${EXTRA:-}; TAG=${TAG:-}; MARKS=${MARKS:-.}
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
 echo "$LAB_KEY_B64" | base64 -d > /root/.ssh/lab && chmod 600 /root/.ssh/lab
 SSH="ssh -i /root/.ssh/lab -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -p $LP"
 lab() { $SSH $LAB "$@"; }
-say() { echo "$(date -u +%H:%M:%S) $*"; lab "echo \"$(date -u +%H:%M:%S) $*\" >> ~/field/pod-self.log" 2>/dev/null; }
-fail() { say "$*"; lab "echo fail > ~/field/POD-DONE"; runpodctl stop pod "$RUNPOD_POD_ID"; exit 1; }
+say() { echo "$(date -u +%H:%M:%S) $*"; lab "echo \"$(date -u +%H:%M:%S) $*\" >> ~/field/$MARKS/pod-self.log" 2>/dev/null; }
+fail() { say "$*"; lab "echo fail > ~/field/$MARKS/POD-DONE"; runpodctl stop pod "$RUNPOD_POD_ID"; exit 1; }
 # the watchdog: stop this pod after POD_HOURS hours
 ( sleep $(( POD_HOURS * 3600 )); runpodctl stop pod "$RUNPOD_POD_ID" ) > /root/watchdog.log 2>&1 &
 say "pod $RUNPOD_POD_ID up: $(nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader | head -1)"
 # a host whose container cannot reach CUDA is useless: say so, ask the launcher for another, stop
 CUDA=$(python -c "import torch; print(torch.cuda.is_available(), torch.version.cuda, torch.__version__)" 2>&1 | tail -1)
 say "torch cuda: $CUDA"
-case "$CUDA" in True*) ;; *) say "no CUDA in this container; asking for another host"; lab "echo $RUNPOD_POD_ID > ~/field/POD-RETRY"; runpodctl stop pod "$RUNPOD_POD_ID"; exit 1 ;; esac
+case "$CUDA" in True*) ;; *) say "no CUDA in this container; asking for another host"; lab "echo $RUNPOD_POD_ID > ~/field/$MARKS/POD-RETRY"; runpodctl stop pod "$RUNPOD_POD_ID"; exit 1 ;; esac
 say "fetching"
 mkdir -p /root/field/runs && cd /root/field
 # scripts, then the bytes the legs need as a tar stream
@@ -85,7 +88,7 @@ PY
   esac
   name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b${TAG:+-$TAG}
   # the resolved leg, so a launcher that rents another host after a drop can continue it
-  lab "echo \"$v:$m:$u:$sd $b\" >> ~/field/LEGS-RESOLVED"
+  lab "echo \"$v:$m:$u:$sd $b\" >> ~/field/$MARKS/LEGS-RESOLVED"
   resume=""
   if [ "$RESUME" = "1" ] && lab "test -f ~/field/runs/$name/resume.pt"; then
     mkdir -p /root/field/runs/$name
@@ -109,7 +112,7 @@ PY
   if [ $rc -ne 0 ] && [ -f /root/field/runs/$name/resume.pt ]; then
     push
     say "leg $name failed three times on this host; asking the launcher for another host to continue from the checkpoint"
-    lab "echo $RUNPOD_POD_ID > ~/field/POD-RETRY"
+    lab "echo $RUNPOD_POD_ID > ~/field/$MARKS/POD-RETRY"
     runpodctl stop pod "$RUNPOD_POD_ID"
     exit 1
   fi
@@ -120,6 +123,6 @@ PY
 done
 echo all >> /root/field/runs/RUN-DONE
 push
-lab "cat ~/field/runs/RUN-DONE > ~/field/POD-DONE"
+lab "cat > ~/field/$MARKS/POD-DONE" < /root/field/runs/RUN-DONE
 say "all legs done; stopping pod"
 runpodctl stop pod "$RUNPOD_POD_ID"
