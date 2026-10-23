@@ -119,7 +119,7 @@ def front_mel(p, x):
 
 
 # ---- the model ----
-def make_params(c, front, poles, seed=0, dtype=torch.float32, mlp=0):
+def make_params(c, front, poles, seed=0, dtype=torch.float32, mlp=0, lookahead=0):
     p = Z.make_params(c, 'ct', seed, torch.float64)
     del p['head.weight']
     g = torch.Generator().manual_seed(seed + 11)
@@ -142,6 +142,13 @@ def make_params(c, front, poles, seed=0, dtype=torch.float32, mlp=0):
     p['front.ln.weight'], p['front.ln.bias'] = torch.ones(nin, dtype=torch.float64), torch.zeros(nin, dtype=torch.float64)
     p['front.probe.weight'] = (torch.rand((c.d, nin), generator=g, dtype=torch.float64) * 2 - 1) / math.sqrt(nin)
     p['front.probe.bias'] = torch.zeros(c.d, dtype=torch.float64)
+    if lookahead:
+        # DeepSpeech 2's row convolution: frame t's head input mixes the final states of frames
+        # t .. t + lookahead per channel; it starts as the identity (weight 1 on frame t, 0 ahead)
+        # stored flat: the optimizer treats every 2-D tensor as a row-normed "rotational" matrix
+        # (and centre_rotational would centre its rows), which this filter is not; 1-D gets Adam
+        w = torch.zeros((lookahead + 1) * c.d, dtype=torch.float64); w[:c.d] = 1.0
+        p['lookahead.weight'] = w
     p['head.weight'] = (torch.rand((len(ALPHABET) + 1, c.d), generator=g, dtype=torch.float64) * 2 - 1) / math.sqrt(c.d)
     p['head.bias'] = torch.zeros(len(ALPHABET) + 1, dtype=torch.float64)
     p = O.centre_rotational(p)
@@ -173,6 +180,10 @@ def forward(c, p, x, front, checkpoint=False, mask_gen=None):
         if f'blocks.{i}.mlp.w1.weight' in p:
             z = mlp_step(p, f'blocks.{i}.mlp.', z)
     f = O.layer_norm(z, p['ln_f.weight'], p['ln_f.bias'])
+    if 'lookahead.weight' in p:
+        w = p['lookahead.weight'].view(-1, f.shape[-1])            # [d+1][D]
+        fp = F.pad(f, (0, 0, 0, w.shape[0] - 1))                   # frames past the end see zeros
+        f = sum(fp[:, j:j + f.shape[1]] * w[j] for j in range(w.shape[0]))
     return F.log_softmax(O.product(f, p['head.weight'], False) + p['head.bias'], dim=-1)[:, :nf]
 
 
@@ -415,11 +426,12 @@ def train(args):
     if args.test_limit:
         for e in [test_set] + extra:
             e.items = e.items[:args.test_limit]
-    p = {k: v.to(device) for k, v in make_params(c, args.front, args.poles, args.seed, mlp=args.mlp).items()}
+    p = {k: v.to(device) for k, v in make_params(c, args.front, args.poles, args.seed, mlp=args.mlp, lookahead=args.lookahead).items()}
     if args.init:
         saved = torch.load(args.init, map_location=device)
-        assert set(saved) == set(p), (set(saved) ^ set(p))
-        p = {k: saved[k].to(device, p[k].dtype) for k in p}
+        new = set(p) - set(saved)                                  # parameters the checkpoint predates keep their init
+        assert set(saved) <= set(p) and new <= {'lookahead.weight'}, (set(saved) ^ set(p))
+        p = {k: (saved[k].to(device, p[k].dtype) if k in saved else p[k]) for k in p}
         say(f'initialised from {args.init}')
     count = sum(v.numel() for v in p.values())
     macs = macs_per_second(c, args.front, args.poles, args.mlp)
@@ -480,7 +492,7 @@ def train(args):
     if args.front == 'osc':
         say('learned ' + describe_front(p))
     say('learned frame-rate ' + Z.describe_poles(p, c, 'ct'))
-    result = {'front': args.front, 'poles': args.poles, 'layers': c.layers, 'mlp': args.mlp, 'augment': args.augment, 'params': count, 'updates': args.updates,
+    result = {'front': args.front, 'poles': args.poles, 'layers': c.layers, 'mlp': args.mlp, 'lookahead': args.lookahead, 'augment': args.augment, 'params': count, 'updates': args.updates,
               'batchSeconds': args.batch_seconds, 'seconds': time.time() - t0, 'macsPerSecond': macs,
               'test': r, 'tests': tests, 'train': train_set.name, 'trainHours': train_set.hours, 'init': str(args.init or ''),
               'framePoles': [Z.poles_of(p, i, 'ct') for i in range(c.layers)]}
@@ -552,6 +564,7 @@ def main():
     t.add_argument('--test', required=True, help='the corpus the subset WER and best.pt follow')
     t.add_argument('--extra-test', default='', help='more corpora to score, comma-separated')
     t.add_argument('--init', type=Path, default=None, help='warm-start from a saved params.pt')
+    t.add_argument('--lookahead', type=int, default=0, help='frames of future context for each output (row convolution; 20 ms each)')
     t.add_argument('--workers', type=int, default=0, help='processes preparing batches ahead of the GPU (0: in the training loop)')
     t.add_argument('--augment', action='store_true', help='speed, room, tilt and noise on the audio; masks on the features (training only)')
     t.add_argument('--test-limit', type=int, default=0, help='score only the first N utterances of each test corpus (smoke tests)')
