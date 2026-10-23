@@ -100,6 +100,7 @@ the acoustic model's compute.
 ## What it changes
 
 The uConsole pipeline is int8 + LM by default. Against the streaming baseline
-([stt-cpu-speed](../2026-10-22-stt-cpu-speed/)) we are now about 3x faster per core with the
-LM included; accuracy (28% vs sherpa's 8.6%, though sherpa's number is on 12 utterances and
+([stt-cpu-speed](../2026-10-22-stt-cpu-speed/)), per core, the int8 model alone is about 3x
+faster (A72: 0.068 vs 0.20) and the full int8 + LM pipeline about 2x (0.10 vs 0.20; A53 0.23
+vs 0.50); accuracy (28% vs sherpa's 8.6%, though sherpa's number is on 12 utterances and
 without an LM) is what remains. Next: the round-3 checkpoint, which is already better.
