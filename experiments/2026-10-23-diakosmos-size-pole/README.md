@@ -1,8 +1,7 @@
 # The polar pole at Diakosmos's size and recipe: against his 1.4194
 
-**Date.** 2026-10-23. **Status.** planned: the 640-update check is queued
-(`harness/chain-v2.sh`, after the real-decay 30K control); the full run waits
-on its result and its cost.
+**Date.** 2026-10-23. **Status.** running: the real arm's 640-update check is done (prediction 1
+held); the polar arm's first leg runs on Roland's account.
 
 ## Question
 
@@ -101,7 +100,36 @@ d0684974…, as his).
 
 ## Results
 
-(pending: the 640-update legs' full held-out bpb, their step time and memory)
+**Prediction 1 (the harness reproduces Diakosmos): held.** The real-decay
+arm, Diakosmos's recipe in our harness (`--half --accumulate 8`, batches of 8,
+activation checkpointing, uncompiled), on a community RTX 3090 of the shared
+account (pod ffpol6p39er7dp, 03:47–07:54 UTC), after 640 updates of the
+15,360-update schedule, over all 18,538,212 held-out bytes:
+
+| | held-out bpb at update 640 |
+|---|---|
+| Diakosmos (his run, Alpha, RTX 3070) | 1.9806 |
+| real decay, this harness | **1.9829** |
+
+The difference, 0.0023, equals his final standard error; the training bytes
+may be in a different document order. 20.5 s an update (13,574 s for the
+640 updates and the full score).
+
+**Speed.** prof_harness.py (one 64-window update at this size): the harness
+is host-bound, the Python loop of the chunked recurrence leaving the GPU
+waiting (CPU self time about three times CUDA time). On an RTX 4090: 19.1 s
+as run above, 7.9 s with the recurrence compiled (`--compile recurrence`,
+checked equal to the uncompiled run up to rounding; compiling the whole block
+moved parameters by 21% and is not used). An A100 80GB was slower than the
+4090 uncompiled (38.9 s), its host being slower.
+
+**The polar arm** runs on Roland's account on an RTX 4090 with the recurrence
+compiled (`launch-dk-full.sh first`, run `polar-dense-14L95H-s0-u15360-b8-dkc`,
+from 07:54 UTC): updates 0–640 and the full score, then, if prediction 2
+holds, the same run continued to 15,360. Compiled versus uncompiled and 4090
+versus 3090 differ at the rounding level only, far below the predicted gap.
+
+(pending: the polar arm at 640)
 
 ## Decided vs measured
 

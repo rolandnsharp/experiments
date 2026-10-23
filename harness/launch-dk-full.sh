@@ -2,9 +2,10 @@
 # The full Diakosmos-size polar run on Roland's own RunPod account (Roland, 2026-10-23: "for that
 # last big run lets use my pod account not ajaxs"): the polar arm of the 640-update check continued
 # to 15,360 updates from its checkpoint, scored on the full held-out set against Diakosmos's 1.4194.
-# Run by hand after the 640-update verdict:
-#   bash ~/field/launch-dk-full.sh            # prints the plan and the cost, starts nothing
-#   bash ~/field/launch-dk-full.sh go         # starts it
+# Two legs of one run (Roland, 2026-10-23: the polar 640 check moved here, compiled on a 4090):
+#   bash ~/field/launch-dk-full.sh first      # updates 0-640, then the full held-out score; stops
+#   bash ~/field/launch-dk-full.sh            # prints the plan and the cost of the rest, starts nothing
+#   bash ~/field/launch-dk-full.sh go         # continues from 640 to 15,360
 # The launcher runs as `pod-self.sh roland` (an argument, so chain-v2.sh's wait for its own launcher
 # does not wait for this one), with its markers and diary in ~/field/roland/, its pod named roland-dkfull-*
 # (another session's ternary pods are roland-field-*). GPUS and CLOUDS from the environment pick the GPU
@@ -12,9 +13,20 @@
 # compiled recurrence, prof_harness-4090) size the run.
 set -uo pipefail
 cd ~/field
-RUN=runs/polar-dense-14L95H-s0-u15360-b8-dk
-[ -f $RUN/stopped-640.json ] && [ -f $RUN/resume.pt ] || { echo "no 640-update checkpoint in $RUN yet"; exit 1; }
+RUN=runs/polar-dense-14L95H-s0-u15360-b8-dkc
 RP_HOME=$HOME/.runpod-roland
+export RP_HOME POD_NAME=roland-dkfull BUSY_PREFIX=roland-dkfull MARKS=roland GPUS="${GPUS:-4090}" CLOUDS="${CLOUDS:-COMMUNITY}"
+export LEGS="polar:dense:15360:0" UPDATES=15360 LAYERS=14 HARMONICS=95 BATCH=8 RESUME=1 TAG=dkc
+if [ "${1:-}" = first ]; then
+  [ -f $RUN/stopped-640.json ] && { echo "the first leg is done already ($RUN/stopped-640.json)"; exit 1; }
+  mkdir -p roland && rm -f roland/LEGS-RESOLVED
+  export SHARDS=1 POD_HOURS=4
+  export EXTRA="--half --accumulate 8 --compile recurrence --stop-at 640 --eval-every 640 --eval-windows 64 --final-windows 0"
+  nohup bash ~/field/pod-self.sh roland > ~/field/roland/pod-self-launch.log 2>&1 < /dev/null & disown
+  echo "$(date -u +%H:%M:%S) Diakosmos-size polar run, first leg (0-640, compiled, $GPUS) started on Roland's account (diary ~/field/roland/pod-self.log)" | tee -a pause-big.log
+  exit 0
+fi
+[ -f $RUN/stopped-640.json ] && [ -f $RUN/resume.pt ] || { echo "no 640-update checkpoint in $RUN yet"; exit 1; }
 K=$(grep -i apikey $RP_HOME/.runpod/config.toml | sed 's/.*= *//; s/["'"'"']//g' | tr -d ' ')
 export STEP=${STEP:-7.9} PRICE=${PRICE:-0.34}
 plan=$(K="$K" python3 - "$RUN" <<'PY'
@@ -42,8 +54,7 @@ echo "account balance \$${balance}; other pods spending \$${other}/h; needed wit
 python3 -c "import sys; sys.exit(0 if float('$balance') >= float('$need') else 1)" || { echo "NOT ENOUGH CREDIT: top up the account or stop the other pod first"; exit 1; }
 [ "${1:-}" = go ] || { echo "plan only; run with 'go' to start"; exit 0; }
 mkdir -p roland && rm -f roland/LEGS-RESOLVED
-export RP_HOME POD_NAME=roland-dkfull BUSY_PREFIX=roland-dkfull MARKS=roland GPUS="${GPUS:-4090}" CLOUDS="${CLOUDS:-COMMUNITY}"
-export LEGS="polar:dense:15360:0" UPDATES=15360 LAYERS=14 HARMONICS=95 BATCH=8 SHARDS=5 POD_HOURS=$watchdog RESUME=1
-export EXTRA="--half --accumulate 8 --compile recurrence --eval-every 640 --eval-windows 64 --final-windows 0" TAG=dk
+export SHARDS=5 POD_HOURS=$watchdog
+export EXTRA="--half --accumulate 8 --compile recurrence --eval-every 640 --eval-windows 64 --final-windows 0"
 nohup bash ~/field/pod-self.sh roland > ~/field/roland/pod-self-launch.log 2>&1 < /dev/null & disown
 echo "$(date -u +%H:%M:%S) full Diakosmos-size polar run started on Roland's account (diary ~/field/roland/pod-self.log)" | tee -a pause-big.log
