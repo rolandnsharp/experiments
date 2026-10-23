@@ -16,7 +16,7 @@ echo "data ok $(date -u +%H:%M)" >> DATA-DONE
 df -h /root | tail -1
 for f in $FRONTS; do
   python zara_stt.py train --front $f --data data --train "$TRAIN" --test test-clean --extra-test "$EXTRA_TESTS" \
-    --mlp "${MLP:-0}" --out runs/$f --poles 64 --layers 4 --harmonics 32 --batch-seconds "$BATCH_SECONDS" --updates "$UPDATES" \
+    --mlp "${MLP:-0}" ${AUGMENT:+--augment} ${INIT:+--init "$INIT"} --out runs/$f --poles 64 --layers 4 --harmonics 32 --batch-seconds "$BATCH_SECONDS" --updates "$UPDATES" \
     --eval-every "$EVAL_EVERY" --eval-utterances 200 --checkpoint > runs-$f.log 2>&1
   echo "$f exit=$?" >> RUN-DONE
 done

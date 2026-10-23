@@ -155,9 +155,12 @@ def mlp_step(p, b, z):
     return z + torch.sigmoid(p[b + 'gate_logit']) * (O.product(h, p[b + 'w2.weight'], False) + p[b + 'w2.bias'])
 
 
-def forward(c, p, x, front, checkpoint=False):
-    """x [B][T] float samples -> log-probabilities [B][T/FRAME][classes]."""
+def forward(c, p, x, front, checkpoint=False, mask_gen=None):
+    """x [B][T] float samples -> log-probabilities [B][T/FRAME][classes]. mask_gen: a torch
+    Generator, and the features are masked (training with --augment only)."""
     feats = front_osc(p, x) if front == 'osc' else front_mel(p, x)
+    if mask_gen is not None:
+        feats = mask_features(feats, mask_gen)
     nf = feats.shape[1]
     feats = F.pad(feats, (0, 0, 0, (-nf) % CHUNK))          # the frame-rate recurrence works in chunks of CHUNK frames
     u = O.layer_norm(feats, p['front.ln.weight'], p['front.ln.bias'])
@@ -207,15 +210,18 @@ class Corpus:
         b = self.bytes[u['src']]
         return mulaw.decode(np.asarray(b[u['offset']:u['offset'] + u['length']]))
 
-    def batch(self, items, device):
-        T = -(-max(u['length'] for u in items) // FRAME) * FRAME
+    def batch(self, items, device, rng=None):
+        """rng given: every utterance is augmented (augment_audio) before normalisation."""
+        audio = [self.audio(u) for u in items]
+        if rng is not None:
+            audio = [augment_audio(a, rng) for a in audio]
+        T = -(-max(a.size for a in audio) // FRAME) * FRAME
         x = np.zeros((len(items), T), dtype=np.float32)
-        for i, u in enumerate(items):
-            a = self.audio(u)
+        for i, a in enumerate(audio):
             x[i, :a.size] = a / (np.sqrt((a ** 2).mean()) + 1e-5) * 0.1
         targets = [encode_text(u['text']) for u in items]
         return (torch.from_numpy(x).to(device),
-                torch.tensor([-(-u['length'] // FRAME) for u in items], dtype=torch.long),
+                torch.tensor([-(-a.size // FRAME) for a in audio], dtype=torch.long),
                 torch.tensor([t for ts in targets for t in ts], dtype=torch.long),
                 torch.tensor([len(t) for t in targets], dtype=torch.long))
 
@@ -236,6 +242,58 @@ class Corpus:
         while True:
             for k in rng.permutation(len(groups)):
                 yield [self.items[i] for i in groups[k]]
+
+
+# ---- augmentation (--augment) ----
+def coloured_noise(n, rng):
+    """White, pink or brown noise of unit RMS, shaped in the frequency domain."""
+    kind = rng.integers(3)
+    spec = np.fft.rfft(rng.standard_normal(n))
+    f = np.maximum(np.arange(spec.size), 1.0)
+    spec = spec / (f ** (0.5 * kind))             # 0 white, 1/f pink, 1/f^2 brown (power)
+    x = np.fft.irfft(spec, n)
+    return x / (np.sqrt((x ** 2).mean()) + 1e-12)
+
+
+def augment_audio(a, rng):
+    """One utterance: speed 0.9/1.0/1.1, then (each with probability 0.5) a synthetic room
+    (exponentially decaying noise impulse response, RT60 0.1-0.6 s), a spectral tilt (a
+    first-order filter, coefficient -0.6..0.6), and noise at 5-35 dB SNR."""
+    a = a.astype(np.float64)
+    sp = rng.choice([0.9, 1.0, 1.1])
+    if sp != 1.0:                                  # faster speech: fewer samples
+        n = int(round(a.size / sp))
+        a = np.interp(np.arange(n) * sp, np.arange(a.size), a)
+    if rng.random() < 0.5:
+        rt60 = rng.uniform(0.1, 0.6)
+        n = int(rt60 * RATE)
+        t = np.arange(n) / RATE
+        h = rng.standard_normal(n) * np.exp(-6.9 * t / rt60)
+        h[0] = 1.0 / rng.uniform(0.3, 1.0)        # the direct path, 0-10 dB above the reverb
+        a = np.fft.irfft(np.fft.rfft(a, a.size + n) * np.fft.rfft(h, a.size + n), a.size + n)[:a.size]
+    if rng.random() < 0.5:
+        c = rng.uniform(-0.6, 0.6)
+        a = np.concatenate([[a[0]], a[1:] - c * a[:-1]])
+    if rng.random() < 0.5:
+        snr = rng.uniform(5, 35)
+        p = np.sqrt((a ** 2).mean()) + 1e-12
+        a = a + coloured_noise(a.size, rng) * p * 10 ** (-snr / 20)
+    return a.astype(np.float32)
+
+
+def mask_features(feats, gen, time_masks=2, time_width=10, chan_masks=2, chan_frac=0.1):
+    """SpecAugment-style: zero `time_masks` spans of up to `time_width` frames and `chan_masks`
+    bands of up to `chan_frac` of the feature channels, per utterance. feats [B][T][C]."""
+    B, T, C = feats.shape
+    keep = torch.ones(B, T, C, dtype=feats.dtype, device=feats.device)
+    for b in range(B):
+        for _ in range(time_masks):
+            w = int(torch.randint(0, time_width + 1, (1,), generator=gen)); t0 = int(torch.randint(0, max(T - w, 1), (1,), generator=gen))
+            keep[b, t0:t0 + w] = 0
+        for _ in range(chan_masks):
+            w = int(torch.randint(0, max(int(C * chan_frac), 1) + 1, (1,), generator=gen)); c0 = int(torch.randint(0, max(C - w, 1), (1,), generator=gen))
+            keep[b, :, c0:c0 + w] = 0
+    return feats * keep
 
 
 def edit_distance(a, b):
@@ -334,11 +392,13 @@ def train(args):
 
     def save(name):
         torch.save({k: v.detach().cpu() for k, v in p.items()}, args.out / name)
+    arng = np.random.default_rng(args.seed + 101) if args.augment else None
+    mgen = torch.Generator().manual_seed(args.seed + 102) if args.augment else None
     for step in range(args.updates):
-        x, lengths, targets, tlen = train_set.batch(next(gen), device)
+        x, lengths, targets, tlen = train_set.batch(next(gen), device, arng)
         for v in p.values():
             v.requires_grad_(True)
-        logp = forward(c, p, x, args.front, checkpoint=args.checkpoint)
+        logp = forward(c, p, x, args.front, checkpoint=args.checkpoint, mask_gen=mgen)
         l = F.ctc_loss(logp.transpose(0, 1), targets, lengths, tlen, blank=BLANK, reduction='mean', zero_infinity=True)
         l.backward()
         grads = {k: v.grad for k, v in p.items()}
@@ -367,7 +427,7 @@ def train(args):
     if args.front == 'osc':
         say('learned ' + describe_front(p))
     say('learned frame-rate ' + Z.describe_poles(p, c, 'ct'))
-    result = {'front': args.front, 'poles': args.poles, 'layers': c.layers, 'mlp': args.mlp, 'params': count, 'updates': args.updates,
+    result = {'front': args.front, 'poles': args.poles, 'layers': c.layers, 'mlp': args.mlp, 'augment': args.augment, 'params': count, 'updates': args.updates,
               'batchSeconds': args.batch_seconds, 'seconds': time.time() - t0, 'macsPerSecond': macs,
               'test': r, 'tests': tests, 'train': train_set.name, 'trainHours': train_set.hours, 'init': str(args.init or ''),
               'framePoles': [Z.poles_of(p, i, 'ct') for i in range(c.layers)]}
@@ -439,6 +499,7 @@ def main():
     t.add_argument('--test', required=True, help='the corpus the subset WER and best.pt follow')
     t.add_argument('--extra-test', default='', help='more corpora to score, comma-separated')
     t.add_argument('--init', type=Path, default=None, help='warm-start from a saved params.pt')
+    t.add_argument('--augment', action='store_true', help='speed, room, tilt and noise on the audio; masks on the features (training only)')
     t.add_argument('--test-limit', type=int, default=0, help='score only the first N utterances of each test corpus (smoke tests)')
     t.add_argument('--out', type=Path, required=True)
     t.add_argument('--poles', type=int, default=64)

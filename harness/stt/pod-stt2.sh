@@ -41,7 +41,10 @@ pod "nohup sh /root/pod-autostop.sh $AUTOSTOP > /root/autostop.log 2>&1 < /dev/n
 echo "== uploading scripts and the Kokoro test pairs"
 pod 'mkdir -p /root/zara/stt/data /root/zara/stt/runs'
 EXTRA_TESTS=test-other
-EXTRA=""; [ -f data/zara-test.bytes ] && [ -s data/zara-test.bytes ] && { EXTRA="data/zara-test.bytes data/zara-test.index.json"; EXTRA_TESTS=test-other,zara-test; }
+# INIT_FILE (a params.pt on the lab) is uploaded as init.pt and passed to every front's training
+[ -n "${INIT_FILE:-}" ] && { cp "$INIT_FILE" init.pt || exit 1; }
+EXTRA=""; [ -f init.pt ] && [ -n "${INIT_FILE:-}" ] && EXTRA="init.pt"
+[ -f data/zara-test.bytes ] && [ -s data/zara-test.bytes ] && { EXTRA="$EXTRA data/zara-test.bytes data/zara-test.index.json"; EXTRA_TESTS=test-other,zara-test; }
 for i in 1 2 3; do
   tar cf - zara_stt.py zara_poles.py diakosmos_oracle.py mulaw.py pack_libri.py pod-run-all.sh $EXTRA | timeout 3600 ssh $OPTS -p "$POD_PORT" root@"$POD_IP" 'cd /root/zara/stt && tar xf -' && break
   echo "upload attempt $i failed"; sleep 30
@@ -55,11 +58,11 @@ if ! echo "$CUDA" | grep -q True; then
 fi
 
 echo "== starting on the pod: subsets [$SUBSETS] train $TRAIN fronts [$FRONTS] updates $UPDATES batch $BATCH_SECONDS s extra tests $EXTRA_TESTS"
-pod "cd /root/zara/stt && rm -f RUN-DONE DATA-DONE && SUBSETS='$SUBSETS' TRAIN='$TRAIN' FRONTS='$FRONTS' UPDATES=$UPDATES EVAL_EVERY=$EVAL_EVERY BATCH_SECONDS=$BATCH_SECONDS EXTRA_TESTS=$EXTRA_TESTS MLP=${MLP:-0} nohup bash pod-run-all.sh > run-all.log 2>&1 < /dev/null & disown; echo started"
+pod "cd /root/zara/stt && rm -f RUN-DONE DATA-DONE && SUBSETS='$SUBSETS' TRAIN='$TRAIN' FRONTS='$FRONTS' UPDATES=$UPDATES EVAL_EVERY=$EVAL_EVERY BATCH_SECONDS=$BATCH_SECONDS EXTRA_TESTS=$EXTRA_TESTS MLP=${MLP:-0} AUGMENT=${AUGMENT:-} INIT=${INIT_FILE:+init.pt} nohup bash pod-run-all.sh > run-all.log 2>&1 < /dev/null & disown; echo started"
 
 fetch() { timeout "${1:-300}" ssh $OPTS -p "$POD_PORT" root@"$POD_IP" 'cd /root/zara/stt && tar cf - runs runs-*.log run-all.log 2>/dev/null' | tar xf - -C ~/zara/stt/$RESULTS/; }
 mkdir -p ~/zara/stt/runs2
-RESULTS=${RESULTS:-runs2}
+RESULTS=${RESULTS:-runs2}; mkdir -p ~/zara/stt/$RESULTS
 while true; do
   sleep 300
   done_lines=$(pod 'cat /root/zara/stt/RUN-DONE 2>/dev/null' 2>/dev/null)
