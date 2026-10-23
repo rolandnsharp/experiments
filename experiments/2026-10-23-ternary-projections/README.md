@@ -1,8 +1,8 @@
 # Ternary projections in Vidya: same width and twice the width
 
-**Date.** 2026-10-23. **Status.** running: B done at 1x, 2x, 4x (seed 0);
-a float control at 2x running (pod 87bthpz2cugrsj); C (64 harmonics, lr 4x)
-on pod dxvdasegg78qa9 from 07:44 UTC.
+**Date.** 2026-10-23. **Status.** seed 0 done: B at 1x, 2x, 4x; float at 2x;
+C at 4x. Waiting for float polar 4x (learning-rate-4l32h's grid) to close
+the fairness check; seed 1 not run.
 
 ## Question
 
@@ -164,6 +164,26 @@ so most of the closing above was the rate, not ternary. At matched rate
 +0.065; float at 4x not run yet. The control's own rate (Diakosmos's
 PEAK_LR 0.003) is too low for 4L/32H at 3K updates.
 
+**C, twice the harmonics (64, width 896), ternary, lr 4x, seed 0** (pod
+dxvdasegg78qa9, 07:48–08:50 UTC, 1.16 s an update): held-out over all
+scored bytes **1.9818 bpb**. That is −0.067 against the 1x control (2.0490)
+and **−0.034 against the best float run so far** (polar 2x, 2.0157).
+Subset curve: 500: 2.2908; 1000: 2.1651; 1500: 2.0675; 2000: 2.0315; 2500:
+1.9881; 3000: 1.9581 (float 2x at 3000: 1.9937).
+
+13,189,592 parameters: 12,845,056 ternary, 344,536 float. Model bytes:
+**3.90 MB** with the ternary weights at 2 bits and the rest bfloat16 (3.23 MB
+at 1.58 bits), against 6.77 MB for the float control in bfloat16: 1.7x
+smaller (2.1x at 1.58 bits), not the 2.5x the prediction assumed. The float
+remainder doubled with the width. Zeros: 27–28% of every qkv matrix, 34–38%
+of the out matrices.
+
+Compute is not equal: **13.64 M MAC/byte**, 3.8x the control's 3.62 M
+(matrix 96%, recurrence 4%; GPT-2 124M is 2x that), with 96% of them ternary
+adds. Training: 8.05e15 FLOP, 3.8x. So C wins at fewer bytes and fewer
+true multiplies, not at equal compute: a float model at this width would
+cost 26.4 MB in bfloat16 and the same multiply-adds as true multiplies.
+
 Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
 93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
@@ -199,7 +219,21 @@ Measured: every bpb number, one seed so far.
 
 ## Verdict
 
-(none yet)
+Provisional (seed 0; float at 4x pending from learning-rate-4l32h):
+
+- B (same width) lost less than predicted at the control's rate (+0.079 vs
+  0.10–0.25 predicted). At matched rates it loses 0.065–0.076 to float.
+  Ternary at this size costs about 0.07 bpb for a 5.9x smaller model.
+- C (twice the width) **beat the prediction**: predicted within ±0.05 of the
+  1x control; it is 0.067 below it and 0.034 below the best float run, at
+  1.7x fewer bytes. The byte saving is smaller than predicted (the float
+  remainder doubled).
+- The learning-rate prediction (best ternary rate 2–4x) held: 4x was best
+  of the three tried. The float model also wants 2x or more, which the
+  experiment did not anticipate (see learning-rate-4l32h).
+
+Caveats: one seed; 3K updates only; C has 3.8x the multiply-adds (as adds);
+the float comparison is not yet at the float model's best rate.
 
 ## What it changes
 
