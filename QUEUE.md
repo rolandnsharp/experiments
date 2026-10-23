@@ -34,6 +34,15 @@ is short of at 3.4 M parameters. Report MAC/byte beside bpb.
 momentum-warmup records; we inherit Diakosmos's optimiser constants untouched
 and have never varied them. Two flags in `diakosmos_oracle.Update`.
 
+## Parked: speech recogniser
+
+- **stt-punctuation** (after accuracy work; Roland 2026-10-23: "since it's bolt-on we don't need
+  to rush"). Punctuation and capitals as a separate text model on each finished phrase, since
+  LibriSpeech transcripts carry neither. Baseline: sherpa-onnx's online punctuation model. Then
+  our own: a small byte-level oscillator model (Vidya) trained to restore punctuation on modern
+  text plus Roland's writing, possibly with the recogniser's pause lengths as a hint. Prediction
+  to be written when it is scheduled.
+
 ## Not queued, and why
 
 - Test-time training and sliding-window scoring: they train or condition on
