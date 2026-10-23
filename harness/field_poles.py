@@ -4,7 +4,7 @@ on Diakosmos's held-out OpenWebText bytes.
 
     field_poles.py train --variant real|cartesian|polar --bytes DIR --out DIR
         [--layers 4 --harmonics 32 --batch 16 --updates 3000 --eval-every 500 --shards N]
-        [--accumulate K] [--half] [--stop-at N] [--ternary] [--lr-scale S]
+        [--accumulate K] [--half] [--stop-at N] [--ternary] [--act8] [--lr-scale S]
 
 --accumulate K: an update is the mean gradient of K batches of --batch windows (the
 windows read in order), so --batch 16 --accumulate 4 is Diakosmos's 64 windows an
@@ -15,7 +15,9 @@ the schedule for --updates), save the checkpoint, score the full held-out set
 (--final-windows) and stop, writing stopped-N.json; --resume continues the run. Without
 these flags the run is as before, bit for bit. --ternary: the blocks' qkv and out
 projections ternary in the forward (zara_poles.TERNARY; BitNet b1.58, the optimizer
-keeps the latent float weights). --lr-scale S: the peak learning rate times S.
+keeps the latent float weights). --act8: the
+projections' inputs rounded to int8 per position (zara_poles.ACT8). --lr-scale S:
+the peak learning rate times S.
 
 The model, the optimizer and the scoring are zara_poles.py's (the audio
 harness, itself Diakosmos's oracle with the recurrence replaced); only the data
@@ -99,6 +101,7 @@ def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     zara_poles.HALF = args.half
     zara_poles.TERNARY = args.ternary
+    zara_poles.ACT8 = args.act8
     O.PEAK_LR = O.PEAK_LR * args.lr_scale
     if args.compile == 'recurrence':
         # torch.compile on the chunked recurrence: its Python loop of small operations leaves the GPU
@@ -125,6 +128,7 @@ def train(args):
         + (f' accumulate {args.accumulate} ({args.batch * args.accumulate} windows an update)' if args.accumulate > 1 else '')
         + (' half (bfloat16 product operands, binary32 accumulation)' if args.half else '')
         + (' ternary qkv/out projections' if args.ternary else '')
+        + (' int8 projection inputs' if args.act8 else '')
         + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else '')
         + (f' compile {args.compile}' if args.compile != 'none' else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
@@ -196,9 +200,9 @@ def train(args):
               'trainBytesSeen': args.updates * per * O.FULL_CONTEXT,
               'shards': stream.shards, 'trainBytes': stream.cat.size,
               'seconds': time.time() - t0, 'heldoutBpb': full, 'curve': curve, 'samples': {}}
-    if args.ternary or args.lr_scale != 1:
-        # what a scorer needs to rebuild the forward (core_server.py reads 'ternary')
-        result['ternary'], result['lrScale'] = args.ternary, args.lr_scale
+    if args.ternary or args.act8 or args.lr_scale != 1:
+        # what a scorer needs to rebuild the forward (core_server.py reads 'ternary' and 'act8')
+        result['ternary'], result['act8'], result['lrScale'] = args.ternary, args.act8, args.lr_scale
     logr, theta = pole(p, 'blocks.0.temporal.attn.', args.variant)
     result['block0Poles'] = {'periodBytes': (2 * math.pi / theta.abs().clamp(min=1e-9)).flatten().tolist(),
                              'decayBytes': (-1 / logr).flatten().tolist()}
@@ -239,6 +243,7 @@ def main():
     t.add_argument('--accumulate', type=int, default=1, help='batches of --batch windows an update (default 1)')
     t.add_argument('--half', action='store_true', help="the products and Newton-Schulz as Diakosmos's device computes them")
     t.add_argument('--ternary', action='store_true', help="the blocks' qkv and out projections ternary in the forward (BitNet b1.58: absmean scale, straight-through gradient)")
+    t.add_argument('--act8', action='store_true', help="the blocks' qkv and out projection inputs rounded to int8 per position in the forward (BitNet b1.58 absmax, straight-through gradient)")
     t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
     t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
                    help='torch.compile the chunked recurrence (default none)')
