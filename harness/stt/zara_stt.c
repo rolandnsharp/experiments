@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define GROUPS 7
 #define NFFT 512
@@ -768,6 +769,110 @@ static int decode_logp_file(const char *path, const LM *lm, float alpha, float b
     return 0;
 }
 
+
+/* --stream: raw signed 16-bit mono 16 kHz on stdin, e.g.
+ *   arecord -q -D plughw:1,0 -f S16_LE -r 16000 -c 1 -t raw | zara_stt MODEL.bin --stream --int8 --lm LM.zlm
+ * Letters appear as the model commits to them (greedy, every K frames). A phrase ends when the
+ * model has emitted only blanks for PAUSE_FRAMES after some text; with --lm the phrase is then
+ * re-decoded by the beam search and its line replaced by the result. A running RMS estimate
+ * (2 s window, floor 0.003) scales the input to RMS 0.1, as the training did per utterance. */
+#define PAUSE_FRAMES 35
+/* --mic: stdin is the uConsole headset mic as the ES8388 delivers it, stereo S16 at 44.1 kHz with
+ * the differential mic as L and an inverted R (their sum cancels the voice). We take (L - R) / 2
+ * and resample to 16 kHz with a Hann-windowed sinc (cutoff 7.6 kHz, 32 taps), dropping the first
+ * half second (the ADC power-up thump). */
+static int g_mic = 0;
+#define MIC_RATE 44100.0
+#define MIC_HALF 16
+static float *mic_in; static long mic_cap, mic_len, mic_base; static double mic_pos; static long mic_skip = 8000;
+static int mic_fill(long upto) {            /* make input sample `upto` (absolute) available */
+    while (mic_base + mic_len <= upto) {
+        int16_t st[2 * 1024]; size_t got = fread(st, 4, 1024, stdin);
+        if (got == 0) return 0;
+        if (mic_len + (long)got > mic_cap) {
+            long keep = (long)mic_pos - MIC_HALF - 1 - mic_base;      /* drop history we no longer need */
+            if (keep > 0) { memmove(mic_in, mic_in + keep, (mic_len - keep) * 4); mic_len -= keep; mic_base += keep; }
+            if (mic_len + (long)got > mic_cap) { mic_cap = (mic_len + got) * 2; mic_in = realloc(mic_in, mic_cap * 4); }
+        }
+        for (size_t i = 0; i < got; i++) mic_in[mic_len++] = (st[2 * i] - st[2 * i + 1]) / 65536.0f;
+    }
+    return 1;
+}
+static int mic_sample(float *y) {           /* the next 16 kHz sample */
+    for (;;) {
+        long c = (long)floor(mic_pos);
+        if (!mic_fill(c + MIC_HALF)) return 0;
+        const double fc = 7600.0 / MIC_RATE;                       /* cutoff, cycles per input sample */
+        double acc = 0;
+        for (long i = c - MIC_HALF + 1; i <= c + MIC_HALF; i++) {
+            if (i < mic_base) continue;
+            double d = mic_pos - i, x = 2 * fc * d;
+            double sinc = fabs(x) < 1e-9 ? 1.0 : sin(M_PI * x) / (M_PI * x);
+            double win = 0.5 + 0.5 * cos(M_PI * d / MIC_HALF);
+            acc += mic_in[i - mic_base] * 2 * fc * sinc * win;
+        }
+        mic_pos += MIC_RATE / 16000.0;
+        if (mic_skip > 0) { mic_skip--; continue; }
+        *y = (float)acc; return 1;
+    }
+}
+static int stream(Model *m, const LM *lm, float alpha, float beta, int B, int K) {
+    int frame = m->h.frame, classes = m->h.classes, tty = isatty(1);
+    int16_t *buf = malloc((size_t)frame * 2);
+    size_t segcap = 1 << 12, segn = 0; float *seg = malloc(segcap * classes * 4);
+    char *line = malloc(1 << 16), *out = malloc(1 << 16); int llen = 0, last = 0, blanks = 0;
+    float *lp = malloc((size_t)K * classes * 4);
+    double rms2 = 1e-4, a = 1.0 / (2.0 * m->h.rate);
+    chunk_alloc(m, K);
+    for (;;) {
+        int kn = 0, eof = 0;
+        for (; kn < K; kn++) {
+            if (g_mic) {
+                int ok = 1;
+                for (int i = 0; i < frame && ok; i++) { float y; ok = mic_sample(&y); buf[i] = (int16_t)fmaxf(-32768.f, fminf(32767.f, y * 32768.f)); }
+                if (!ok) { eof = 1; break; }
+            } else if (fread(buf, 2, frame, stdin) != (size_t)frame) { eof = 1; break; }
+            float *fk = m->cFEAT + (size_t)kn * m->h.nin;
+            for (int i = 0; i < frame; i++) {
+                float x = buf[i] / 32768.0f;
+                rms2 += a * ((double)x * x - rms2);
+                float r = sqrtf((float)rms2); if (r < 0.003f) r = 0.003f;
+                x *= 0.1f / r;
+                if (m->h.front == 0) bank_sample(m, x); else mel_sample(m, x);
+            }
+            long t = (long)(segn + kn);   /* the mel front only needs a monotone frame index */
+            if (m->h.front == 0) bank_frame(m, fk); else mel_frame(m, t, (t + 1) * frame, fk);
+        }
+        if (kn > 0) {
+            frames_chunk(m, kn, lp);
+            for (int k = 0; k < kn; k++) {
+                if (segn == segcap) { segcap *= 2; seg = realloc(seg, segcap * classes * 4); }
+                memcpy(seg + segn * classes, lp + (size_t)k * classes, classes * 4); segn++;
+                const float *l = lp + (size_t)k * classes;
+                int best = 0; for (int c = 1; c < classes; c++) if (l[c] > l[best]) best = c;
+                if (best != last && best != 0) {
+                    char ch = best == 1 ? '\'' : best == 2 ? ' ' : 'A' + (best - 3);
+                    if (!(ch == ' ' && (llen == 0 || line[llen - 1] == ' '))) { line[llen++] = ch; putchar(ch); }
+                }
+                blanks = best == 0 ? blanks + 1 : 0;
+                last = best;
+            }
+            fflush(stdout);
+        }
+        int pause = llen > 0 && blanks >= PAUSE_FRAMES;
+        if (pause || (eof && llen > 0)) {
+            if (lm) {
+                beam_decode(seg, (int)segn, classes, lm, alpha, beta, B, out, 1 << 16);
+                if (tty) printf("\r\033[K%s\n", out); else printf("\n= %s\n", out);
+            } else putchar('\n');
+            fflush(stdout);
+            llen = 0; segn = 0; blanks = 0;
+        } else if (blanks >= PAUSE_FRAMES && llen == 0) segn = 0;   /* silence before any text: drop it */
+        if (eof) break;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: %s MODEL.bin FILE.wav [--dump OUT.f32] [--bench] [--gain G]\n", argv[0]); return 1; }
     const char *dump = NULL, *lmpath = NULL, *logpfile = NULL; int bench = 0, beam = 32; float gain = 0, alpha = 0.5f, beta = 0.5f; int K = 16;
@@ -781,6 +886,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--beta") && i + 1 < argc) beta = atof(argv[++i]);
         else if (!strcmp(argv[i], "--beam") && i + 1 < argc) beam = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--int8")) g_int8 = 1;
+        else if (!strcmp(argv[i], "--mic")) g_mic = 1;
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 1; }
     }
     if (!strcmp(argv[1], "--decode-logp")) {          /* zara_stt --decode-logp FILE --lm LM.bin [...]: decoder test */
@@ -790,6 +896,7 @@ int main(int argc, char **argv) {
     }
     Model *m = load_model(argv[1]);
     LM *lm = lmpath ? load_lm(lmpath) : NULL;
+    if (!strcmp(argv[2], "--stream")) return stream(m, lm, alpha, beta, beam, K < 1 ? 1 : K);
     size_t n; float *x = read_wav(argv[2], &n, m->h.rate);
     if (gain == 0) {
         double s = 0; for (size_t i = 0; i < n; i++) s += (double)x[i] * x[i];

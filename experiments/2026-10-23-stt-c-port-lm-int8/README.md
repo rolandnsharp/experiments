@@ -104,3 +104,15 @@ The uConsole pipeline is int8 + LM by default. Against the streaming baseline
 faster (A72: 0.068 vs 0.20) and the full int8 + LM pipeline about 2x (0.10 vs 0.20; A53 0.23
 vs 0.50); accuracy (28% vs sherpa's 8.6%, though sherpa's number is on 12 utterances and
 without an LM) is what remains. Next: the round-3 checkpoint, which is already better.
+
+## Addendum: live dictation (2026-10-23)
+
+`zara_stt --stream --mic` reads the uConsole headset microphone live (`harness/stt/dictate.sh`:
+`arecord -D hw:1 -f S16_LE -r 44100 -c 2` piped in). The ES8388 delivers the differential mic as
+L and an inverted R, so the port takes (L - R) / 2 and resamples to 16 kHz with a windowed sinc;
+a first attempt recorded mono, which averages L and R and cancels the voice exactly (silence in,
+no output). Letters print as the model commits to them, every 16 frames (320 ms); after 0.7 s
+of blanks the phrase is re-decoded with the 3-gram and its line replaced. Roland ran it with the
+round-3 oscillator model (int8): "it works with nice low latency, not like slow whisper that
+doesn't print out in real time." Latency and accuracy on his voice are not measured yet.
+
