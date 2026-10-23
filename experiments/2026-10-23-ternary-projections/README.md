@@ -1,8 +1,8 @@
 # Ternary projections in Vidya: same width and twice the width
 
-**Date.** 2026-10-23. **Status.** running: the same-width arm (B) at the
-control's learning rate on a community 3090 since 06:13 UTC; the 2x and 4x
-rates waiting for a GPU; the wide arm (C) after them.
+**Date.** 2026-10-23. **Status.** running: B done at 1x, 2x, 4x (seed 0);
+a float control at 2x running (pod 87bthpz2cugrsj); C (64 harmonics, lr 4x)
+on pod dxvdasegg78qa9 from 07:44 UTC.
 
 ## Question
 
@@ -15,7 +15,7 @@ This is the first step toward an edge model with no multiplications in the
 projections: ternary weights turn every product into an add, a subtract or a
 skip. Later steps, each its own experiment, would be 8-bit activations,
 shift-only decays (r = 1 − 2^−k) and CORDIC pole rotation, then the speed of
-an integer C port on the uConsole's A53 cores.
+an integer C port on the uConsole with all six cores on (A72s at 1.8 GHz; no battery-mode A53-only tests, Roland 2026-10-23: new batteries will run all cores).
 
 ## Prior art
 
@@ -139,6 +139,22 @@ seed 0) / gap: 500: 2.5515 / 2.447 / 0.10; 1000: 2.3195 / 2.221 / 0.10;
 weights packed at 2 bits and the rest bfloat16, 0.99 MB at 1.58 bits (5.9x
 under bfloat16). Zeros at the end: 26–27% of every qkv matrix, 33–39% of
 the out matrices (39% in the last block), about a third each of +1 and −1.
+**B, same width, lr 2x, seed 0** (pod 1mb2d1kisjilnq, 06:29–07:10 UTC):
+**2.0916 bpb**, against the control's 2.0490: **+0.043**, inside the ±0.05
+band where we said ternary is nearly free. Subset curve, ternary / control /
+gap: 500: 2.4315 / 2.447 / −0.02 (ahead early); 1000: 2.2677 / 2.221 / 0.05;
+1500: 2.1736 / 2.119 / 0.05; 2000: 2.1348; 2500: 2.0958 / 2.048 / 0.05;
+3000: 2.0688 / 2.028 / 0.041. Caveat: the control ran at lr 1x only; if the
+float model also gains from 2x, part of this closing is the rate, not
+ternary (a float arm at 2x answers it).
+
+**B, same width, lr 4x, seed 0** (pod r0s28vx3pe6jc1, 06:52–07:43 UTC):
+**2.0806 bpb**: **+0.032** over the control. Subset curve: 500: 2.3802
+(0.07 ahead of the control); 1000: 2.2589; 1500: 2.1645; 2000: 2.1280;
+2500: 2.0850; 3000: 2.0554 (+0.027). Across rates the gap goes 0.079 →
+0.043 → 0.032 at 1x, 2x, 4x: the gain from the rate is shrinking, so 4x is
+taken for C (an 8x arm not run, to save credit).
+
 Compute as the control's: 3.62 M MAC/byte (matrix 93%, recurrence 7%), but
 93% of them are now ternary adds; 2.14e15 training FLOP over 98 MB.
 
@@ -149,9 +165,28 @@ The fraction of zero weights per matrix at the end.
 
 ## Decided vs measured
 
-Decided (to write as laws): the quantizer's output takes exactly three
-values times the scale; the flag-off forward is the control's forward bit for
-bit; the parameter and byte counts per arm. Measured: every bpb number.
+Decided, as verified statements on proofs.blah.dev (Lean 4.33.1, Mathlib
+0df444a3; 2026-10-23):
+
+- A ternary dot product is one multiply by the scale and otherwise adds and
+  subtracts: sum_i (s q_i) x_i = s (sum_{q_i=1} x_i − sum_{q_i=−1} x_i) for
+  q_i in {−1, 0, 1}
+  (https://proofs.blah.dev/theorems/01a167c2-b5a0-78a7-b962-3ce1d4154873,
+  proof https://proofs.blah.dev/submissions/01a167c7-8abc-72c0-bdd7-6f0fa963dc16).
+  This is what "93% of the multiply-adds are ternary adds" rests on.
+- The absmean quantizer s clamp(r, −1, 1), for any nearest rounding r of w/s
+  (ties either way, so torch.round's half-to-even too), moves a weight with
+  |w| ≤ 3s/2 by at most s/2
+  (https://proofs.blah.dev/theorems/01a167c2-b847-70a1-8bd1-cd38ee0bcf77,
+  proof https://proofs.blah.dev/submissions/01a167ca-e101-7fc7-9afb-09aacabe24a9),
+  and beyond 3s/2 clips with error exactly |w| − s
+  (https://proofs.blah.dev/theorems/01a167c2-ba32-7a7d-befe-44adcbc389e9,
+  proof https://proofs.blah.dev/submissions/01a167ca-e2ac-752c-af8a-a776c2e2922d).
+
+Checked by `harness/ternary_check.py` but not proved: the flag-off forward
+equals the control's bit for bit; the projections the forward uses take three
+values times their scale. Counted: parameters and model bytes per arm.
+Measured: every bpb number, one seed so far.
 
 ## Verdict
 
