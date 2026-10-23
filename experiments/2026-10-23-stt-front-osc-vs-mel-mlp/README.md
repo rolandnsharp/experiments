@@ -1,6 +1,6 @@
 # Speech recognition, round 3: oscillator front vs mel on the MLP backbone
 
-**Date.** 2026-10-23. **Status.** osc arm done, mel arm running (pod `roland-stt3-a40-1`, A40, Roland's account).
+**Date.** 2026-10-23. **Status.** done (one seed), 2026-10-23.
 Prediction written before any result.
 
 ## Question
@@ -82,11 +82,39 @@ loading the model and the LM: real-time factor 0.121 on an A72, 0.251 on an A53,
 Decided: the parameter and multiply-add counts (osc + MLP 294 M, mel + MLP 287 M per second
 of audio). Measured, one seed: every WER.
 
+**mel arm (done 08:20 UTC).** 30,000 updates, 2 h 50 min (0.33 s/update: the GPU is busy; the
+osc arm's 0.94 s/update is the sample-rate scan). Checkpoint md5 43b0b23295bccdb657975dcd399b0bbe.
+
+| step (subset, test-clean) | 5K | 10K | 15K | 20K | 25K | 30K |
+|---|---|---|---|---|---|---|
+| osc | 0.664 | 0.513 | **0.434** | **0.380** | **0.355** | **0.334** |
+| mel | **0.647** | **0.503** | 0.450 | 0.400 | 0.379 | 0.359 |
+
+Final, whole test sets, greedy WER / CER:
+
+| front | params | test-clean | test-other | Kokoro |
+|---|---|---|---|---|
+| osc | 5.78 M | **0.386 / 0.120** | **0.621 / 0.253** | **0.370 / 0.112** |
+| mel | 5.71 M | 0.402 / 0.126 | 0.644 / 0.265 | 0.374 / 0.115 |
+
 ## Verdict
 
-Pending the mel arm. Already against the prediction: the front's decays did not stay within
-0.3–50 ms; the longest went to the 1 s cap.
+Against the prediction (osc 0.03–0.08 worse): wrong. The oscillator front ends **better** than
+mel on all three test sets, by 1.6 points on test-clean, 2.3 on test-other and 0.4 on the
+synthetic voice. It trailed early (to about 10K updates, as in round 1 and the voice-command
+experiment), overtook mel by 15K and widened the gap after. The mel prediction (0.38–0.45) held
+at 0.402. The front's decays also left the predicted 0.3–50 ms range (the longest reached the
+1 s cap).
+
+One seed, so this is a hint, not a result (rule 4): a 1.6-point gap is within what a second
+seed could move. It is enough to answer the question that mattered: the oscillator front does
+not cost accuracy, so the front that needs no FFT can be the one we ship. It costs 3x the GPU
+time per update in training (the sample-rate scan), not at inference.
 
 ## What it changes
 
-Pending.
+Ship the oscillator front (round 4 trains it longer, with augmentation). A second seed of both
+arms would turn the hint into a result; worth it if the claim "learned oscillators beat mel"
+goes into the model card as more than an observation.
+
+
