@@ -196,6 +196,9 @@ def train(args):
               'trainBytesSeen': args.updates * per * O.FULL_CONTEXT,
               'shards': stream.shards, 'trainBytes': stream.cat.size,
               'seconds': time.time() - t0, 'heldoutBpb': full, 'curve': curve, 'samples': {}}
+    if args.ternary or args.lr_scale != 1:
+        # what a scorer needs to rebuild the forward (core_server.py reads 'ternary')
+        result['ternary'], result['lrScale'] = args.ternary, args.lr_scale
     logr, theta = pole(p, 'blocks.0.temporal.attn.', args.variant)
     result['block0Poles'] = {'periodBytes': (2 * math.pi / theta.abs().clamp(min=1e-9)).flatten().tolist(),
                              'decayBytes': (-1 / logr).flatten().tolist()}

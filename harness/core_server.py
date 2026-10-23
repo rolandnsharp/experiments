@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """blah-core-http/1 scoring endpoint for a field_poles.py checkpoint (byte-level).
 
-    core_server.py --run DIR [--port 7990] [--device cuda] [--max-seq-len 2048]
+    core_server.py --run DIR [--port 7990] [--device cuda] [--max-seq-len 2048] [--ternary]
 
-DIR holds result.json (variant, layers, harmonics) and params.pt from
-field_poles.py. A token is a byte; BOS is byte 10 (newline), prepended so
+DIR holds result.json (variant, layers, harmonics, and ternary for a --ternary
+run) and params.pt from field_poles.py. --ternary scores a ternary run whose
+result.json predates that key. A token is a byte; BOS is byte 10 (newline), prepended so
 position 0 has a target. Spans are found in byte space exactly as the
 protocol says (common prefix for choice_set, common suffix for suffix_set,
 strict prefix for greedy_pair); sequences longer than --max-seq-len keep
@@ -25,6 +26,7 @@ import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diakosmos_oracle as O  # noqa: E402
+import zara_poles  # noqa: E402
 from zara_poles import CHUNK, forward  # noqa: E402
 
 PROTOCOL = 'blah-core-http/1'
@@ -48,8 +50,10 @@ def common_suffix(seqs):
 
 
 class Scorer:
-    def __init__(self, run, device, max_seq_len):
+    def __init__(self, run, device, max_seq_len, ternary=False):
         meta = json.loads((run / 'result.json').read_text())
+        # the forward the run was trained with: ternary projections when it said so
+        zara_poles.TERNARY = ternary or meta.get('ternary', False)
         self.c = O.Config(harmonics=meta['harmonics'], layers=meta['layers'], heads=7, kan=8, dt=0.3)
         self.variant = meta['variant']
         self.device = torch.device(device)
@@ -132,8 +136,9 @@ def main():
     ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     ap.add_argument('--max-seq-len', type=int, default=2048)
     ap.add_argument('--selftest', action='store_true')
+    ap.add_argument('--ternary', action='store_true', help='a field_poles.py --ternary run whose result.json does not say so')
     args = ap.parse_args()
-    scorer = Scorer(args.run, args.device, args.max_seq_len)
+    scorer = Scorer(args.run, args.device, args.max_seq_len, args.ternary)
     if args.selftest:
         ex = [{'kind': 'choice_set', 'prompts': ['Q: What is 2+2?\nAnswer: 4', 'Q: What is 2+2?\nAnswer: banana']},
               {'kind': 'greedy_pair', 'prompts': ['the cat sat on the', 'the cat sat on the mat']},
