@@ -1,7 +1,7 @@
 # The polar pole at Diakosmos's size and recipe: against his 1.4194
 
-**Date.** 2026-10-23. **Status.** running: the real arm's 640-update check is done (prediction 1
-held); the polar arm's first leg runs on Roland's account.
+**Date.** 2026-10-23. **Status.** running: predictions 1 and 2 held at 640 updates; the polar arm
+continues to 15,360 on Roland's account when Roland says go.
 
 ## Question
 
@@ -129,7 +129,29 @@ from 07:54 UTC): updates 0–640 and the full score, then, if prediction 2
 holds, the same run continued to 15,360. Compiled versus uncompiled and 4090
 versus 3090 differ at the rounding level only, far below the predicted gap.
 
-(pending: the polar arm at 640)
+**Prediction 2 (the pole helps early): held, and larger than predicted.**
+The polar arm, compiled, on an RTX 4090 (secure, $0.89/h, pod 35b0ep36bvwhld,
+07:54–09:31 UTC, 8.1 s an update, 5,645 s for the 640 updates and the full
+score), over all held-out bytes:
+
+| at update 640 | held-out bpb |
+|---|---|
+| Diakosmos (his run) | 1.9806 |
+| real decay, this harness | 1.9829 |
+| **polar pole** | **1.8794** |
+
+The gap to the real arm is **0.104**, above the predicted 0.03–0.08. On
+training loss (each update's own 64 windows) the polar arm was ahead from the
+start: 3.38 vs 3.93 at update 100, 2.34 vs 3.46 at 200. At 3.4 M parameters
+the early gap (0.064 at 1,000 updates) narrowed to 0.036 by 3,000 and then
+held, so this one is expected to narrow too; the full run says by how much.
+Diakosmos's own curve passed 1.88 between updates 640 and 2,560.
+
+Caveat (learning-rate-4l32h, same day): at 4L/32H, Diakosmos's peak rate is
+too low for both forms at 3K updates, and real decay gains more from a higher
+rate than polar does. Here both arms use his rate at his size, where it was
+tuned for real decay (harmonic-gpt's 100 M settings); the polar arm has not
+been tuned at all, so if anything this setup favours the real arm.
 
 ## Decided vs measured
 

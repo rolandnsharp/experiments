@@ -90,16 +90,19 @@ per arm. Held out: the GPT-2 baseline's split (sha256 d0684974…,
 
 ## Results
 
-Held-out bpb over all scored bytes, seed 0, 3K updates:
+Full held-out (all 18,538,212 scored bytes), 4L/32H, 3,000 updates, seed 0.
+The 1x arms are text-pole-form's; polar 2x is the ternary session's
+float-lr2 run; the rest ran on Roland's account (community RTX 3090s,
+launchers `lrcheck-*`).
 
-| rate | real | polar | gap |
+| peak rate | real | polar | gap (real − polar) |
 |---|---|---|---|
 | 1x (0.003) | 2.0849 | 2.0490 | 0.036 |
-| 2x | (pending) | 2.0157 | |
-| 4x | (pending) | (pending) | |
+| 2x | 2.0519 | 2.0157 | 0.036 |
+| 4x | 2.0381 | (running) | |
 
-Polar 2x subset curve: 500: 2.3345; 1000: 2.1848; 1500: 2.0884; 2000:
-2.0505; 2500: 2.0168; 3000: 1.9937.
+Real 2x: pod 6pjs8ct6mv5rrt, 1,888 s; real 4x: 1,723 s; polar 4x: pod
+3se6eb4flh8diw, from 09:31 UTC.
 
 ## Decided vs measured
 
