@@ -1,0 +1,5 @@
+f32 greedy: WER 0.334 CER 0.097 over 200 utterances
+f32 lm: WER 0.165 CER 0.065 over 200 utterances
+int8 greedy: WER 0.339 CER 0.098 over 200 utterances
+int8 lm: WER 0.166 CER 0.065 over 200 utterances
+done
