@@ -12,6 +12,10 @@
 # $HOME, the shared lab account; Roland's own is ~/.runpod-roland). BUSY_PREFIX: the pod names
 # that count as this project's one running pod (default roland-, every roland pod). MARKS: the
 # directory under ~/field for this launcher's markers and diary (default ., ~/field itself).
+# GPUS: the GPUs to try in order, comma-separated: a number names a GeForce RTX card, anything else
+# is a RunPod GPU type id (default 3070,3080,3090). CLOUDS: the clouds to try for each, space-
+# separated (default COMMUNITY, Ajax's rule on the shared account; SECURE is allowed on Roland's).
+# POD_NAME: the pod's name before the GPU (default roland-field).
 # Run on the lab:
 #   nohup bash ~/field/pod-self.sh > ~/field/pod-self-launch.log 2>&1 < /dev/null & disown
 set -uo pipefail
@@ -23,6 +27,7 @@ export LEGS=${LEGS:-"real:dense polar:dense polar:grouped"} UPDATES=${UPDATES:-3
 export LAYERS=${LAYERS:-4} HARMONICS=${HARMONICS:-32} BATCH=${BATCH:-16} SHARDS=${SHARDS:-0} RESUME=${RESUME:-0}
 export EXTRA=${EXTRA:-} TAG=${TAG:-}
 export RP_HOME=${RP_HOME:-$HOME} BUSY_PREFIX=${BUSY_PREFIX:-roland-}
+export GPUS=${GPUS:-3070,3080,3090} CLOUDS=${CLOUDS:-COMMUNITY} POD_NAME=${POD_NAME:-roland-field}
 export RUNPOD_KEY=$(grep -i apikey "$RP_HOME/.runpod/config.toml" | sed 's/.*= *//; s/["'"'"']//g' | tr -d ' ')
 export LAB_KEY_B64=$(base64 -w0 ~/.ssh/pod_upload)
 export DRIVER_B64=$(base64 -w0 ~/field/pod-self-driver.sh)
@@ -41,6 +46,8 @@ deploy() {  # deploy GPU; prints the pod id, or the error
 python3 - "$1" <<'PY'
 import json, os, sys, urllib.request
 gpu = sys.argv[1]
+gpu_id = f'NVIDIA GeForce RTX {gpu}' if gpu.isdigit() else gpu
+tag = gpu if gpu.isdigit() else gpu.replace('NVIDIA ', '').replace(' ', '').replace('GeForceRTX', '').lower()[:16]
 key = os.environ['RUNPOD_KEY']
 def q(query, variables=None):
     req = urllib.request.Request(f'https://api.runpod.io/graphql?api_key={key}', data=json.dumps({'query': query, 'variables': variables or {}}).encode(), headers={'Content-Type': 'application/json'})
@@ -51,12 +58,12 @@ if busy:
     print('busy ' + ' '.join(busy)); sys.exit(0)
 env = [{'key': k, 'value': os.environ[k]} for k in ('LAB_KEY_B64', 'DRIVER_B64', 'LEGS', 'UPDATES', 'POD_HOURS', 'LAYERS', 'HARMONICS', 'BATCH', 'SHARDS', 'RESUME', 'EXTRA', 'TAG', 'MARKS')]
 inp = dict(cloudType='COMMUNITY', gpuCount=1, volumeInGb=0, containerDiskInGb=30, minVcpuCount=1, minMemoryInGb=8,
-           gpuTypeId=f'NVIDIA GeForce RTX {gpu}', name=f'roland-field-{gpu}',
+           gpuTypeId=gpu_id, name=f"{os.environ['POD_NAME']}-{tag}",
            imageName='runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04',
            dockerArgs="bash -c 'echo $DRIVER_B64 | base64 -d > /root/driver.sh; bash /root/driver.sh > /root/driver.log 2>&1'",
            env=env, volumeMountPath='/workspace')
-# the community cloud only (Ajax's rule)
-for cloud in ('COMMUNITY',):
+# the clouds in CLOUDS' order (the shared account: community only, Ajax's rule)
+for cloud in os.environ['CLOUDS'].split():
     inp['cloudType'] = cloud
     r = q('mutation($input: PodFindAndDeployOnDemandInput) { podFindAndDeployOnDemand(input: $input) { id machineId costPerHr machine { gpuDisplayName } } }', {'input': inp})
     d = (r.get('data') or {}).get('podFindAndDeployOnDemand')
@@ -95,12 +102,13 @@ resolved_legs() {  # the legs the driver resolved (LEGS-RESOLVED) that have no r
 deadline=$(( $(date +%s) + 8 * 3600 ))
 drops=0
 while [ "$(date +%s)" -lt "$deadline" ]; do
-  for gpu in 3070 3080 3090; do
-    R=$(deploy $gpu)
+  IFS=, read -ra gpu_list <<< "$GPUS"
+  for gpu in "${gpu_list[@]}"; do
+    R=$(deploy "$gpu")
     case "$R" in
       pod\ *)
         echo "== $(date -u +%H:%M) rented $R; it drives itself (diary: ~/field/$MARKS/pod-self.log)"; echo "$R" > POD-ID
-        PID=$(echo "$R" | cut -d" " -f2); MACHINE=$(echo "$R" | cut -d" " -f5)
+        PID=$(echo "$R" | cut -d" " -f2); MACHINE=$(echo "$R" | awk '{print $(NF-2)}')
         # wait for the pod's verdict: POD-DONE (finished), POD-RETRY (a host without CUDA: remove it, rent another),
         # or the pod vanishing mid-run (the host went away: rent another and continue from the lab's checkpoint)
         rm -f POD-RETRY
@@ -135,8 +143,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
         [ -f POD-DONE ] && { echo "== $(date -u +%H:%M) pod finished: $(cat POD-DONE | tr "\n" " ")"; sleep 45; echo "== removing the stopped pod: $(remove "$PID")"; exit 0; }
         echo "== $(date -u +%H:%M) no verdict from pod $PID within the watchdog; stopping it"; HOME=$RP_HOME ~/.local/bin/runpodctl stop pod "$PID" 2>&1 | tail -1; echo fail > POD-DONE; exit 1 ;;
       busy\ *) echo "another roland pod is running ($R); not starting"; echo fail > POD-DONE; exit 1 ;;
-      badhost\ *) echo "== $(date -u +%H:%M) RTX $gpu: landed on a known bad machine ($R); removed" ;;
-      *) echo "== $(date -u +%H:%M) RTX $gpu: $R" ;;
+      badhost\ *) echo "== $(date -u +%H:%M) $gpu: landed on a known bad machine ($R); removed" ;;
+      *) echo "== $(date -u +%H:%M) $gpu: $R" ;;
     esac
     sleep 10
   done
