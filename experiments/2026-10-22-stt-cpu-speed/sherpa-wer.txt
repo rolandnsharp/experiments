@@ -1,0 +1,4 @@
+no RTF line
+threads 1 power discharging: WER 0.086 CER 0.058 over 221 words
+no RTF line
+threads 4 power discharging: WER 0.086 CER 0.058 over 221 words

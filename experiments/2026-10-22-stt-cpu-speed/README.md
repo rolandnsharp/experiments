@@ -1,8 +1,8 @@
 # Speech recognition on the uConsole CPU: the recogniser's C port vs whisper.cpp
 
 **Date.** 2026-10-22 (whisper, first port timings), 2026-10-23 (MLP variants).
-**Status.** partial: our side is timed on untrained weights; the streaming baselines that
-matter (sherpa-onnx, Vosk) are not timed yet.
+**Status.** done for whisper.cpp and sherpa-onnx (2026-10-23); Vosk not timed. Our side is
+timed on untrained weights (compute does not depend on them).
 
 ## Question
 
@@ -74,6 +74,24 @@ Real-time factor = compute seconds per second of audio (below 1 keeps up with sp
 
 The MLP variants on an A72 (mains) are not timed yet.
 
+**Added 2026-10-23: the streaming baseline.** sherpa-onnx v1.13.8 (prebuilt aarch64 CPU
+build, onnxruntime) with the streaming Zipformer transducer
+`sherpa-onnx-streaming-zipformer-en-20M-2023-02-17`, int8, greedy search; `run-sherpa.sh`.
+Mains power, every run pinned to one core with `taskset`, wall clock including model load
+(`single-core-mains.txt`):
+
+| one core | sherpa Zipformer 20M int8 | ours osc + MLP 448 | ours osc, no MLP | whisper tiny.en |
+|---|---|---|---|---|
+| A53, 10.4 s file | 1.10 | 0.70 | 0.49 | 4.49 |
+| A72, 10.4 s file | 0.44 | 0.23 | 0.14 | 2.26 |
+| A53, all 12 files (86.85 s) | **0.49** | 0.69 | — | — |
+| A72, all 12 files (86.85 s) | **0.20** | 0.25 | — | — |
+
+On one short file sherpa's load time (a 42 MB model) dominates and ours looks faster. Over
+87 s of audio, with the load spread out, **sherpa is faster than our MLP model on both core
+types**, 0.49 vs 0.69 on the A53 and 0.20 vs 0.25 on the A72. Its WER on the 12 utterances is
+**0.086** (CER 0.058), against ours at 0.56 greedy (whole test-clean, trained checkpoint).
+
 ## Decided vs measured
 
 Decided: multiply-adds per second of audio from the layout (osc 174 M, osc + MLP 294 M,
@@ -85,11 +103,16 @@ uConsole's frequency governor left at schedutil.
 Against the prediction: the A72 achieves 1.4 GMAC/s on this code, not 2–3, so RTF 0.12
 rather than 0.06–0.09; the matrix-vector products are unvectorised scalar loops. On battery,
 one slow core runs the working (MLP) recogniser just faster than real time (0.84) while
-whisper tiny needs 2.25 on all four. That beats whisper on speed and memory by a wide margin
-and says nothing yet against the streaming recognisers that are the honest comparison; and
-whisper is at 5% WER where ours is at 56% greedy / 23% with LM.
+whisper tiny needs 2.25 on all four. That beats whisper, which is not a streaming model.
+Against the honest baseline it does not hold: sherpa-onnx's 20 M streaming Zipformer, int8
+on onnxruntime, is faster than our scalar-C MLP model on one core of either type and is at
+8.6% WER on the same utterances where we are at 56% (greedy). Our architecture's arithmetic is
+cheap (287 M MAC/s), but our implementation is unvectorised float32 and theirs is NEON int8.
+There is no speed claim to make yet, and no accuracy claim.
 
 ## What it changes
 
-Time sherpa-onnx streaming Zipformer and Vosk on the same utterances; NEON-vectorise the
-matrix-vector products (the obvious 2–4x); time the MLP variants on the A72.
+A speed claim needs our implementation to match theirs in kind: NEON-vectorised (and
+possibly int8) matrix-vector products, which is where nearly all our time goes. Even then the
+accuracy gap (8.6% vs 56% greedy) is the larger problem; the speed comparison only matters for
+a model that transcribes usefully. Vosk is not timed.
