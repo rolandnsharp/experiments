@@ -100,6 +100,13 @@ def train(args):
     zara_poles.HALF = args.half
     zara_poles.TERNARY = args.ternary
     O.PEAK_LR = O.PEAK_LR * args.lr_scale
+    if args.compile == 'recurrence':
+        # torch.compile on the chunked recurrence: its Python loop of small operations leaves the GPU
+        # waiting on the host (2.4x faster an update at Diakosmos's size on a 4090). The same
+        # arithmetic fused, so equal to the uncompiled run up to rounding (checked on the lab's CPU:
+        # held-out equal to 6 decimals after 4 updates). Compiling the whole block is not offered:
+        # it moved parameters by up to 21% in the same check, so it computes something else.
+        zara_poles.recurrence = torch.compile(zara_poles.recurrence, dynamic=False)
     c = O.Config(harmonics=args.harmonics, layers=args.layers, heads=7, kan=8, dt=0.3)
     out = args.out
     out.mkdir(parents=True, exist_ok=True)
@@ -118,7 +125,8 @@ def train(args):
         + (f' accumulate {args.accumulate} ({args.batch * args.accumulate} windows an update)' if args.accumulate > 1 else '')
         + (' half (bfloat16 product operands, binary32 accumulation)' if args.half else '')
         + (' ternary qkv/out projections' if args.ternary else '')
-        + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else ''))
+        + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else '')
+        + (f' compile {args.compile}' if args.compile != 'none' else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -229,6 +237,8 @@ def main():
     t.add_argument('--half', action='store_true', help="the products and Newton-Schulz as Diakosmos's device computes them")
     t.add_argument('--ternary', action='store_true', help="the blocks' qkv and out projections ternary in the forward (BitNet b1.58: absmean scale, straight-through gradient)")
     t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
+    t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
+                   help='torch.compile the chunked recurrence (default none)')
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')
     args = ap.parse_args()
     train(args)

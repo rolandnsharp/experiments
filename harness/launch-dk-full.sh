@@ -8,22 +8,24 @@
 # The launcher runs as `pod-self.sh roland` (an argument, so chain-v2.sh's wait for its own launcher
 # does not wait for this one), with its markers and diary in ~/field/roland/, its pod named roland-dkfull-*
 # (another session's ternary pods are roland-field-*). GPUS and CLOUDS from the environment pick the GPU
-# (default a 3090, community then secure); the cost estimate below is for a 3090 at $0.22/h.
+# (default a community 4090); STEP and PRICE (default 7.9 s, $0.34/h: the 4090's profiled update with the
+# compiled recurrence, prof_harness-4090) size the run.
 set -uo pipefail
 cd ~/field
 RUN=runs/polar-dense-14L95H-s0-u15360-b8-dk
 [ -f $RUN/stopped-640.json ] && [ -f $RUN/resume.pt ] || { echo "no 640-update checkpoint in $RUN yet"; exit 1; }
 RP_HOME=$HOME/.runpod-roland
 K=$(grep -i apikey $RP_HOME/.runpod/config.toml | sed 's/.*= *//; s/["'"'"']//g' | tr -d ' ')
+export STEP=${STEP:-7.9} PRICE=${PRICE:-0.34}
 plan=$(K="$K" python3 - "$RUN" <<'PY'
 import json, os, sys, urllib.request
 run = sys.argv[1]
 s = json.load(open(f'{run}/stopped-640.json'))
-# the step time: the training clock at update 640 less the held-out checks' share (one 64-window check)
-per = s['curve'][-1]['seconds'] / 640
+# the step time: the profiled update on the GPU chosen (the 640-update legs ran uncompiled on a 3090)
+per = float(os.environ['STEP'])
 left = 15360 - 640
 hours = left * per / 3600 * 1.08 + 1.0           # 8% for the checks and pushes, an hour for the fetch and the final scoring
-price = 0.22
+price = float(os.environ['PRICE'])
 cost = hours * price
 q = 'query { myself { clientBalance currentSpendPerHr } }'
 key = os.environ['K']
@@ -35,13 +37,13 @@ print(f"{per:.2f} {hours:.1f} {cost:.2f} {r['clientBalance']:.2f} {other:.3f} {n
 PY
 ) || { echo "could not size the run"; exit 1; }
 read per hours cost balance other need watchdog <<< "$plan"
-echo "step ${per} s; ${hours} h for the remaining 14,720 updates; about \$${cost} at \$0.22/h (community 3090)"
+echo "step ${per} s; ${hours} h for the remaining 14,720 updates; about \$${cost} at \$${PRICE}/h"
 echo "account balance \$${balance}; other pods spending \$${other}/h; needed with margin \$${need}; watchdog ${watchdog} h"
 python3 -c "import sys; sys.exit(0 if float('$balance') >= float('$need') else 1)" || { echo "NOT ENOUGH CREDIT: top up the account or stop the other pod first"; exit 1; }
 [ "${1:-}" = go ] || { echo "plan only; run with 'go' to start"; exit 0; }
 mkdir -p roland && rm -f roland/LEGS-RESOLVED
-export RP_HOME POD_NAME=roland-dkfull BUSY_PREFIX=roland-dkfull MARKS=roland GPUS="${GPUS:-3090}" CLOUDS="${CLOUDS:-COMMUNITY SECURE}"
+export RP_HOME POD_NAME=roland-dkfull BUSY_PREFIX=roland-dkfull MARKS=roland GPUS="${GPUS:-4090}" CLOUDS="${CLOUDS:-COMMUNITY}"
 export LEGS="polar:dense:15360:0" UPDATES=15360 LAYERS=14 HARMONICS=95 BATCH=8 SHARDS=5 POD_HOURS=$watchdog RESUME=1
-export EXTRA="--half --accumulate 8 --eval-every 640 --eval-windows 64 --final-windows 0" TAG=dk
+export EXTRA="--half --accumulate 8 --compile recurrence --eval-every 640 --eval-windows 64 --final-windows 0" TAG=dk
 nohup bash ~/field/pod-self.sh roland > ~/field/roland/pod-self-launch.log 2>&1 < /dev/null & disown
 echo "$(date -u +%H:%M:%S) full Diakosmos-size polar run started on Roland's account (diary ~/field/roland/pod-self.log)" | tee -a pause-big.log
