@@ -1,5 +1,20 @@
 # Index
 
+## Headline results
+
+The few results that change what we believe, each with how far it is
+settled. A row is promoted to *established* only on two seeds or a full run;
+*provisional* means one seed or a partial run, and the number can move. The
+full record, wins and nulls alike, is the dated table below.
+
+| result | evidence | status |
+|---|---|---|
+| **The complex (polar) pole beats real decay, and the gain grows with model size**: 0.036–0.043 bpb at 3.4 M (steady over a 30K pass, unchanged at a 2x tuned rate); **0.103 at 100 M** (1.8794 vs 1.9829, Diakosmos's recipe). The parametrization is LRU's; the equal-compute measurement is ours | [text-pole-form](experiments/2026-10-21-text-pole-form/), [diakosmos-size-pole](experiments/2026-10-23-diakosmos-size-pole/), [learning-rate-4l32h](experiments/2026-10-23-learning-rate-4l32h/) | 3.4 M **established** (two seeds); 100 M **provisional** (640 of 15,360 updates, one seed) |
+| **A twice-width ternary Vidya beats full precision at fewer bytes**: 1.9818 bpb at 3.9 MB vs 2.0157 at 6.77 MB, with 96% of its multiply-adds as ternary adds | [ternary-projections](experiments/2026-10-23-ternary-projections/) | **provisional** (seed 1 and float at 4x pending) |
+| **Diakosmos's learning rate (0.003) is too low at 4L/32H**: 2x gains 0.033 bpb for both pole forms | [learning-rate-4l32h](experiments/2026-10-23-learning-rate-4l32h/) | **provisional** (one seed, 3K updates only) |
+
+## All experiments
+
 | date | experiment | variable | result | verdict |
 |---|---|---|---|---|
 | 2026-10-19 | [speech-pole-form](experiments/2026-10-19-speech-pole-form/) | pole form (real / polar / cartesian) on speech bytes | 3.396 / 3.293 / 3.281 bpb | complex poles win 0.10–0.12 bpb at equal updates (one seed) |
