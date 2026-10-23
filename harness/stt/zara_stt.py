@@ -319,10 +319,13 @@ def parallel_batches(corpus, gen, workers, augment, seed):
     ctx = mp.get_context('fork')
     pool = ctx.Pool(workers)
     ahead = threading.Semaphore(2 * workers)      # at most 2 x workers batches prepared and not yet used
+    stop = threading.Event()
 
     def jobs():                                   # Pool.imap pulls jobs eagerly from its own thread: bound it here
         for k in range(10 ** 12):
             ahead.acquire()
+            if stop.is_set():
+                return
             yield next(gen), ((seed * 1000003 + k) if augment else None)
 
     results = pool.imap(_w_batch, jobs(), chunksize=1)
@@ -331,7 +334,12 @@ def parallel_batches(corpus, gen, workers, augment, seed):
         for r in results:
             ahead.release()
             yield r
-    return feed()
+    def close():                                  # unblock the feeder thread, then end the workers
+        stop.set()
+        ahead.release()
+        pool.terminate()
+        pool.join()
+    return feed(), close
 
 
 def edit_distance(a, b):
@@ -432,7 +440,7 @@ def train(args):
         torch.save({k: v.detach().cpu() for k, v in p.items()}, args.out / name)
     arng = np.random.default_rng(args.seed + 101) if args.augment else None
     mgen = torch.Generator().manual_seed(args.seed + 102) if args.augment else None
-    feed = parallel_batches(train_set, gen, args.workers, args.augment, args.seed + 101) if args.workers > 0 else None
+    feed, close_feed = parallel_batches(train_set, gen, args.workers, args.augment, args.seed + 101) if args.workers > 0 else (None, None)
     for step in range(args.updates):
         if feed is not None:
             xn, ln, tn, tln = next(feed)
@@ -461,6 +469,8 @@ def train(args):
                 best = r['wer']
                 save('best.pt')
     save('params.pt')
+    if close_feed is not None:                    # the workers would otherwise keep the process alive after training
+        close_feed()
     r = evaluate(c, p, test_set, args.front, device)
     say(f'final test {test_set.name} ({r["utterances"]} utt) WER {r["wer"]:.3f} CER {r["cer"]:.3f}')
     tests = {}

@@ -829,7 +829,7 @@ static int stream(Model *m, const LM *lm, float alpha, float beta, int B, int K)
         for (; kn < K; kn++) {
             if (g_mic) {
                 int ok = 1;
-                for (int i = 0; i < frame && ok; i++) { float y; ok = mic_sample(&y); buf[i] = (int16_t)fmaxf(-32768.f, fminf(32767.f, y * 32768.f)); }
+                for (int i = 0; i < frame && ok; i++) { float y = 0; ok = mic_sample(&y); buf[i] = (int16_t)fmaxf(-32768.f, fminf(32767.f, y * 32768.f)); }
                 if (!ok) { eof = 1; break; }
             } else if (fread(buf, 2, frame, stdin) != (size_t)frame) { eof = 1; break; }
             float *fk = m->cFEAT + (size_t)kn * m->h.nin;
