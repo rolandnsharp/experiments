@@ -92,6 +92,25 @@ On one short file sherpa's load time (a 42 MB model) dominates and ours looks fa
 types**, 0.49 vs 0.69 on the A53 and 0.20 vs 0.25 on the A72. Its WER on the 12 utterances is
 **0.086** (CER 0.058), against ours at 0.56 greedy (whole test-clean, trained checkpoint).
 
+**Added 2026-10-23: chunked NEON inference (`rematch-neon.txt`).** Two changes to the C
+port, no change to the model: frames are processed in chunks of K (each weight row is read
+once per chunk instead of once per frame; K = 16 is 320 ms of latency, comparable to the
+streaming Zipformer's chunk), and the matrix products use a register-blocked NEON kernel
+(4 weight rows × 4 frames per pass, 8 vector loads per 16 fused multiply-adds). Verified on
+the trained mel + MLP checkpoint against PyTorch: max |Δ log-prob| 1.2e-3 (float32 FFT),
+identical argmax on every frame, identical transcript; the x86 fallback path unchanged.
+Diagnosis first: chunking alone gave only 1.3x (the port was not mainly bandwidth-bound);
+the gain came from feeding the vector units.
+
+Mains power, pinned to one core, all 12 files (86.85 s), wall clock with model load:
+
+| one core | sherpa Zipformer 20M int8 | ours, trained mel + MLP, K = 16 | K = 32 |
+|---|---|---|---|
+| A72 | 0.199 | **0.151** | 0.128 |
+| A53 | 0.500 | **0.346** | 0.322 |
+
+WER on the same 12 utterances, greedy: sherpa 0.086, ours 0.489 (CER 0.058 vs 0.145).
+
 ## Decided vs measured
 
 Decided: multiply-adds per second of audio from the layout (osc 174 M, osc + MLP 294 M,
@@ -109,6 +128,13 @@ on onnxruntime, is faster than our scalar-C MLP model on one core of either type
 8.6% WER on the same utterances where we are at 56% (greedy). Our architecture's arithmetic is
 cheap (287 M MAC/s), but our implementation is unvectorised float32 and theirs is NEON int8.
 There is no speed claim to make yet, and no accuracy claim.
+
+Update after the NEON rematch: on speed the claim now holds, modestly. One core runs our
+trained 5.7 M parameter model 1.3x (A72) to 1.4x (A53) faster than sherpa's 20 M int8
+Zipformer at comparable latency, in float32 from one dependency-free C file. On accuracy we
+remain far behind (49% vs 8.6% WER on these 12 utterances), so the speed is not yet worth
+having. The architecture is cheap enough to have room: int8 weights would cut memory traffic
+4x again.
 
 ## What it changes
 

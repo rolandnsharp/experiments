@@ -1,0 +1,9 @@
+== core 5, 12 files, 86.85 s
+sherpa Zipformer 20M int8:    17.26 s, RTF 0.199
+ours mel+mlp448 trained K=16: 13.13 s, RTF 0.151
+ours mel+mlp448 trained K=32: 11.09 s, RTF 0.128
+== core 0, 12 files, 86.85 s
+sherpa Zipformer 20M int8:    43.42 s, RTF 0.500
+ours mel+mlp448 trained K=16: 30.07 s, RTF 0.346
+ours mel+mlp448 trained K=32: 27.96 s, RTF 0.322
+ours trained (mel+mlp448, 10K updates), greedy, 12 utt: WER 0.489 CER 0.145 over 221 words

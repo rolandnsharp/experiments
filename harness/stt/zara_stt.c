@@ -41,6 +41,8 @@ typedef struct {
     float *lnf_w, *lnf_b, *head_w, *head_b;
     /* scratch */
     float *feat, *u, *z, *qkv, *qh, *kh, *read, *temporal, *n, *rot, *f, *logit, *h1, *h3;
+    /* chunked path: K frames at a time, so every weight row is read once per chunk, not once per frame */
+    int K; float *cFEAT, *cU, *cZ, *cQKV, *cREAD, *cTEMP, *cF, *cLOG, *cH1, *cH3;
 } Model;
 
 static float *arr(FILE *f, size_t n) {
@@ -322,13 +324,177 @@ static float *read_wav(const char *path, size_t *n_out, int rate) {
 
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec * 1e-9; }
 
+/* Y[k][o] = b[o] + sum_i W[o][i] X[k][i] for k < K: each weight row is loaded once and used K times */
+static float dot(const float *w, const float *x, int in) {
+    float s = 0;
+    for (int i = 0; i < in; i++) s += w[i] * x[i];
+    return s;
+}
+
+#if defined(__aarch64__)
+#include <arm_neon.h>
+/* 4 output rows x 4 frames per pass: 8 vector loads feed 16 fused multiply-adds */
+static void matmul(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
+    int o = 0;
+    if (in % 4 == 0) {
+        for (; o + 4 <= out; o += 4) {
+            const float *w0 = W + (size_t)o * in, *w1 = w0 + in, *w2 = w1 + in, *w3 = w2 + in;
+            int k = 0;
+            for (; k + 4 <= K; k += 4) {
+                const float *x0 = X + (size_t)k * in, *x1 = x0 + in, *x2 = x1 + in, *x3 = x2 + in;
+                float32x4_t a00 = vdupq_n_f32(0), a01 = a00, a02 = a00, a03 = a00, a10 = a00, a11 = a00, a12 = a00, a13 = a00;
+                float32x4_t a20 = a00, a21 = a00, a22 = a00, a23 = a00, a30 = a00, a31 = a00, a32 = a00, a33 = a00;
+                for (int i = 0; i < in; i += 4) {
+                    float32x4_t v0 = vld1q_f32(x0 + i), v1 = vld1q_f32(x1 + i), v2 = vld1q_f32(x2 + i), v3 = vld1q_f32(x3 + i);
+                    float32x4_t u = vld1q_f32(w0 + i);
+                    a00 = vfmaq_f32(a00, u, v0); a01 = vfmaq_f32(a01, u, v1); a02 = vfmaq_f32(a02, u, v2); a03 = vfmaq_f32(a03, u, v3);
+                    u = vld1q_f32(w1 + i);
+                    a10 = vfmaq_f32(a10, u, v0); a11 = vfmaq_f32(a11, u, v1); a12 = vfmaq_f32(a12, u, v2); a13 = vfmaq_f32(a13, u, v3);
+                    u = vld1q_f32(w2 + i);
+                    a20 = vfmaq_f32(a20, u, v0); a21 = vfmaq_f32(a21, u, v1); a22 = vfmaq_f32(a22, u, v2); a23 = vfmaq_f32(a23, u, v3);
+                    u = vld1q_f32(w3 + i);
+                    a30 = vfmaq_f32(a30, u, v0); a31 = vfmaq_f32(a31, u, v1); a32 = vfmaq_f32(a32, u, v2); a33 = vfmaq_f32(a33, u, v3);
+                }
+                float b0 = b ? b[o] : 0, b1 = b ? b[o + 1] : 0, b2 = b ? b[o + 2] : 0, b3 = b ? b[o + 3] : 0;
+                float *y0 = Y + (size_t)k * out + o, *y1 = y0 + out, *y2 = y1 + out, *y3 = y2 + out;
+                y0[0] = vaddvq_f32(a00) + b0; y1[0] = vaddvq_f32(a01) + b0; y2[0] = vaddvq_f32(a02) + b0; y3[0] = vaddvq_f32(a03) + b0;
+                y0[1] = vaddvq_f32(a10) + b1; y1[1] = vaddvq_f32(a11) + b1; y2[1] = vaddvq_f32(a12) + b1; y3[1] = vaddvq_f32(a13) + b1;
+                y0[2] = vaddvq_f32(a20) + b2; y1[2] = vaddvq_f32(a21) + b2; y2[2] = vaddvq_f32(a22) + b2; y3[2] = vaddvq_f32(a23) + b2;
+                y0[3] = vaddvq_f32(a30) + b3; y1[3] = vaddvq_f32(a31) + b3; y2[3] = vaddvq_f32(a32) + b3; y3[3] = vaddvq_f32(a33) + b3;
+            }
+            for (; k < K; k++) {
+                const float *x = X + (size_t)k * in;
+                for (int r = 0; r < 4; r++) Y[(size_t)k * out + o + r] = dot(W + (size_t)(o + r) * in, x, in) + (b ? b[o + r] : 0);
+            }
+        }
+    }
+    for (; o < out; o++)
+        for (int k = 0; k < K; k++) Y[(size_t)k * out + o] = dot(W + (size_t)o * in, X + (size_t)k * in, in) + (b ? b[o] : 0);
+}
+#else
+static void matmul(const float *W, const float *X, const float *b, float *Y, int out, int in, int K) {
+    for (int o = 0; o < out; o++)
+        for (int k = 0; k < K; k++) Y[(size_t)k * out + o] = dot(W + (size_t)o * in, X + (size_t)k * in, in) + (b ? b[o] : 0);
+}
+#endif
+
+static void chunk_alloc(Model *m, int K) {
+    Hdr h = m->h; int D = h.D;
+    m->K = K;
+    m->cFEAT = malloc((size_t)K * h.nin * 4); m->cU = malloc((size_t)K * D * 4); m->cZ = malloc((size_t)K * D * 4);
+    m->cQKV = malloc((size_t)K * 3 * D * 4); m->cREAD = malloc((size_t)K * D * 4); m->cTEMP = malloc((size_t)K * D * 4);
+    m->cF = malloc((size_t)K * D * 4); m->cLOG = malloc((size_t)K * h.classes * 4);
+    if (h.mlp) { m->cH1 = malloc((size_t)K * h.mlp * 4); m->cH3 = malloc((size_t)K * h.mlp * 4); }
+}
+
+static void block_chunk(Model *m, Block *b, int K) {
+    Hdr h = m->h;
+    int D = h.D, H = h.H, L = h.L, dh = h.dh, W = h.W, pairs = GROUPS / 2;
+    for (int k = 0; k < K; k++) layer_norm(m->cZ + (size_t)k * D, b->ln_w, b->ln_b, m->cU + (size_t)k * D, D);
+    matmul(b->qkv_w, m->cU, b->qkv_b, m->cQKV, 3 * D, D, K);
+    for (int k = 0; k < K; k++) {          /* the recurrence is sequential in time */
+        const float *q = m->cQKV + (size_t)k * 3 * D, *kk = q + D, *v = q + 2 * D;
+        float *read = m->cREAD + (size_t)k * D;
+        for (int hh = 0; hh < H; hh++) {
+            const float *qd = q + hh * dh, *kd = kk + hh * dh, *vd = v + hh * dh;
+            for (int l = 0; l < 2 * L; l++) {
+                const float *w = b->qh_w + ((size_t)hh * 2 * L + l) * dh;
+                float s2 = 0;
+                for (int d = 0; d < dh; d++) s2 += w[d] * qd[d];
+                m->qh[hh * 2 * L + l] = s2;
+            }
+            for (int l = 0; l < L; l++) {
+                const float *w = b->kh_w + ((size_t)hh * L + l) * dh;
+                float s2 = 0;
+                for (int d = 0; d < dh; d++) s2 += w[d] * kd[d];
+                m->kh[hh * L + l] = s2 * b->spec[hh * L + l];
+            }
+            float *rd = read + hh * dh;
+            for (int d = 0; d < dh; d++) rd[d] = 0;
+            for (int l = 0; l < L; l++) {
+                int j = hh * L + l;
+                float cr = b->cr[j], ci = b->ci[j], kh = m->kh[j];
+                float qre = m->qh[hh * 2 * L + l], qim = m->qh[hh * 2 * L + L + l];
+                float *Sre = b->Sre + (size_t)j * dh, *Sim = b->Sim + (size_t)j * dh;
+                for (int d = 0; d < dh; d++) {
+                    float re = cr * Sre[d] - ci * Sim[d] + kh * vd[d];
+                    float im = cr * Sim[d] + ci * Sre[d];
+                    Sre[d] = re; Sim[d] = im;
+                    rd[d] += qre * re + qim * im;
+                }
+            }
+        }
+    }
+    matmul(b->out_w, m->cREAD, b->out_b, m->cTEMP, D, D, K);
+    for (int k = 0; k < K; k++) {
+        float *z = m->cZ + (size_t)k * D, *temporal = m->cTEMP + (size_t)k * D;
+        for (int g = 0; g < GROUPS; g++) {
+            const float *zg = z + g * W;
+            float s2 = 0;
+            for (int w = 0; w < W; w++) s2 += zg[w] * zg[w];
+            s2 = sqrtf(s2); if (s2 < EPS_NORM) s2 = EPS_NORM;
+            for (int w = 0; w < W; w++) m->n[g * W + w] = zg[w] / s2;
+        }
+        for (int i = 0; i < pairs; i++) {
+            const float *first = m->n + (2 * i) * W, *second = m->n + (2 * i + 1) * W;
+            const float *cm = b->cosm + i * W, *sn = b->sinv + i * W;
+            float *r0 = m->rot + (2 * i) * W, *r1 = m->rot + (2 * i + 1) * W;
+            for (int w = 0; w < W; w++) {
+                r0[w] = cm[w] * first[w] - sn[w] * second[w];
+                r1[w] = sn[w] * first[w] + cm[w] * second[w];
+            }
+        }
+        for (int g = 0; g < GROUPS; g++) {
+            float gate = b->gate[g], coup = b->coup[g];
+            for (int w = 0; w < W; w++) {
+                int i = g * W + w;
+                float spatial = g < 2 * pairs ? coup * m->rot[i] : 0;
+                z[i] += gate * temporal[i] + (1 - gate) * spatial;
+            }
+        }
+    }
+}
+
+static void mlp_chunk(Model *m, Block *b, int K) {
+    int D = m->h.D, Hm = m->h.mlp;
+    for (int k = 0; k < K; k++) layer_norm(m->cZ + (size_t)k * D, b->mln_w, b->mln_b, m->cU + (size_t)k * D, D);
+    matmul(b->w1, m->cU, NULL, m->cH1, Hm, D, K);
+    matmul(b->w3, m->cU, NULL, m->cH3, Hm, D, K);
+    for (size_t j = 0; j < (size_t)K * Hm; j++) { float a = m->cH1[j]; m->cH1[j] = a / (1 + expf(-a)) * m->cH3[j]; }
+    matmul(b->w2, m->cH1, b->w2_b, m->cTEMP, D, Hm, K);
+    for (size_t i = 0; i < (size_t)K * D; i++) m->cZ[i] += b->mgate * m->cTEMP[i];
+}
+
+/* K frames of features (m->cFEAT) -> K rows of log-probabilities */
+static void frames_chunk(Model *m, int K, float *logp) {
+    Hdr h = m->h; int D = h.D, C = h.classes;
+    for (int k = 0; k < K; k++) layer_norm(m->cFEAT + (size_t)k * h.nin, m->fln_w, m->fln_b, m->cFEAT + (size_t)k * h.nin, h.nin);
+    matmul(m->probe_w, m->cFEAT, m->probe_b, m->cZ, D, h.nin, K);
+    for (int i = 0; i < h.layers; i++) {
+        block_chunk(m, &m->blk[i], K);
+        if (h.mlp) mlp_chunk(m, &m->blk[i], K);
+    }
+    for (int k = 0; k < K; k++) layer_norm(m->cZ + (size_t)k * D, m->lnf_w, m->lnf_b, m->cF + (size_t)k * D, D);
+    matmul(m->head_w, m->cF, m->head_b, m->cLOG, C, D, K);
+    for (int k = 0; k < K; k++) {
+        const float *lg = m->cLOG + (size_t)k * C; float *lp = logp + (size_t)k * C;
+        float mx = lg[0];
+        for (int c = 1; c < C; c++) if (lg[c] > mx) mx = lg[c];
+        float s2 = 0;
+        for (int c = 0; c < C; c++) s2 += expf(lg[c] - mx);
+        float lse = mx + logf(s2);
+        for (int c = 0; c < C; c++) lp[c] = lg[c] - lse;
+    }
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: %s MODEL.bin FILE.wav [--dump OUT.f32] [--bench] [--gain G]\n", argv[0]); return 1; }
-    const char *dump = NULL; int bench = 0; float gain = 0;
+    const char *dump = NULL; int bench = 0; float gain = 0; int K = 16;
     for (int i = 3; i < argc; i++) {
         if (!strcmp(argv[i], "--dump") && i + 1 < argc) dump = argv[++i];
         else if (!strcmp(argv[i], "--bench")) bench = 1;
         else if (!strcmp(argv[i], "--gain") && i + 1 < argc) gain = atof(argv[++i]);
+        else if (!strcmp(argv[i], "--chunk") && i + 1 < argc) K = atoi(argv[++i]);
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 1; }
     }
     Model *m = load_model(argv[1]);
@@ -341,21 +507,30 @@ int main(int argc, char **argv) {
     size_t frames = (n + frame - 1) / frame;
     float *feat = malloc(m->h.nin * 4), *logp = malloc(frames * classes * 4);
     char *text = malloc(frames + 1); int tlen = 0, last = 0;
+    if (K < 1) K = 1;
+    chunk_alloc(m, K);
     double t0 = now();
-    for (size_t t = 0; t < frames; t++) {
-        if (m->h.front == 0) {
-            for (int i = 0; i < frame; i++) { size_t j = t * frame + i; bank_sample(m, j < n ? x[j] * gain : 0); }
-            bank_frame(m, feat);
-        } else {
-            for (int i = 0; i < frame; i++) { size_t j = t * frame + i; mel_sample(m, j < n ? x[j] * gain : 0); }
-            mel_frame(m, (long)t, (long)(t + 1) * frame, feat);
+    for (size_t t0f = 0; t0f < frames; t0f += K) {
+        int kn = (int)((frames - t0f) < (size_t)K ? frames - t0f : (size_t)K);
+        for (int k = 0; k < kn; k++) {
+            size_t t = t0f + k; float *fk = m->cFEAT + (size_t)k * m->h.nin;
+            if (m->h.front == 0) {
+                for (int i = 0; i < frame; i++) { size_t j = t * frame + i; bank_sample(m, j < n ? x[j] * gain : 0); }
+                bank_frame(m, fk);
+            } else {
+                for (int i = 0; i < frame; i++) { size_t j = t * frame + i; mel_sample(m, j < n ? x[j] * gain : 0); }
+                mel_frame(m, (long)t, (long)(t + 1) * frame, fk);
+            }
         }
-        float *lp = logp + t * classes;
-        frame_step(m, feat, lp);
-        int best = 0; for (int c = 1; c < classes; c++) if (lp[c] > lp[best]) best = c;
-        if (best != last && best != 0) text[tlen++] = best == 1 ? '\'' : best == 2 ? ' ' : 'A' + (best - 3);
-        last = best;
+        frames_chunk(m, kn, logp + t0f * classes);
+        for (int k = 0; k < kn; k++) {
+            float *lp = logp + (t0f + k) * classes;
+            int best = 0; for (int c = 1; c < classes; c++) if (lp[c] > lp[best]) best = c;
+            if (best != last && best != 0) text[tlen++] = best == 1 ? '\'' : best == 2 ? ' ' : 'A' + (best - 3);
+            last = best;
+        }
     }
+    (void)feat; (void)frame_step;
     double t1 = now();
     text[tlen] = 0;
     printf("%s\n", text);
