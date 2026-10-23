@@ -1,6 +1,11 @@
 # Speech recognition, round 4: train longer, with augmentation
 
-**Date.** 2026-10-23. **Status.** planned (waiting on budget). Prediction written before any run.
+**Date.** 2026-10-23. **Status.** running since 2026-10-23 07:52 UTC (pod `roland-stt4-a40-1`, A40, $0.59/h).
+Prediction written before any run.
+
+Run note: the first start ran at 2.05 s/update because the augmentation (numpy, one CPU core) starved
+the GPU; it was stopped after ~150 updates and restarted from the same checkpoint with batches
+prepared by 6 worker processes (`--workers 6`): 1.07 s/update, about 18 h for 60,000 updates.
 
 ## Question
 

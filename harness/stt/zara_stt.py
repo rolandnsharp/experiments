@@ -210,7 +210,7 @@ class Corpus:
         b = self.bytes[u['src']]
         return mulaw.decode(np.asarray(b[u['offset']:u['offset'] + u['length']]))
 
-    def batch(self, items, device, rng=None):
+    def batch(self, items, device, rng=None, as_numpy=False):
         """rng given: every utterance is augmented (augment_audio) before normalisation."""
         audio = [self.audio(u) for u in items]
         if rng is not None:
@@ -220,6 +220,9 @@ class Corpus:
         for i, a in enumerate(audio):
             x[i, :a.size] = a / (np.sqrt((a ** 2).mean()) + 1e-5) * 0.1
         targets = [encode_text(u['text']) for u in items]
+        if as_numpy:
+            return (x, np.array([-(-a.size // FRAME) for a in audio], dtype=np.int64),
+                    np.array([t for ts in targets for t in ts], dtype=np.int64), np.array([len(t) for t in targets], dtype=np.int64))
         return (torch.from_numpy(x).to(device),
                 torch.tensor([-(-a.size // FRAME) for a in audio], dtype=torch.long),
                 torch.tensor([t for ts in targets for t in ts], dtype=torch.long),
@@ -294,6 +297,28 @@ def mask_features(feats, gen, time_masks=2, time_width=10, chan_masks=2, chan_fr
             w = int(torch.randint(0, max(int(C * chan_frac), 1) + 1, (1,), generator=gen)); c0 = int(torch.randint(0, max(C - w, 1), (1,), generator=gen))
             keep[b, :, c0:c0 + w] = 0
     return feats * keep
+
+
+# ---- parallel batch preparation (--workers) ----
+_W_CORPUS = None
+
+
+def _w_batch(job):
+    """In a worker process: one batch's numpy arrays, augmented with its own seed."""
+    items, seed = job
+    x, lengths, targets, tlen = _W_CORPUS.batch(items, None, np.random.default_rng(seed) if seed is not None else None, as_numpy=True)
+    return x, lengths, targets, tlen
+
+
+def parallel_batches(corpus, gen, workers, augment, seed):
+    """Prepare batches in `workers` processes ahead of the GPU (fork: the memory-mapped corpus is shared)."""
+    import multiprocessing as mp
+    global _W_CORPUS
+    _W_CORPUS = corpus
+    ctx = mp.get_context('fork')
+    pool = ctx.Pool(workers)
+    jobs = ((next(gen), (seed * 1000003 + k) if augment else None) for k in range(10 ** 12))
+    return pool.imap(_w_batch, jobs, chunksize=1)
 
 
 def edit_distance(a, b):
@@ -394,8 +419,13 @@ def train(args):
         torch.save({k: v.detach().cpu() for k, v in p.items()}, args.out / name)
     arng = np.random.default_rng(args.seed + 101) if args.augment else None
     mgen = torch.Generator().manual_seed(args.seed + 102) if args.augment else None
+    feed = parallel_batches(train_set, gen, args.workers, args.augment, args.seed + 101) if args.workers > 0 else None
     for step in range(args.updates):
-        x, lengths, targets, tlen = train_set.batch(next(gen), device, arng)
+        if feed is not None:
+            xn, ln, tn, tln = next(feed)
+            x, lengths, targets, tlen = torch.from_numpy(xn).to(device), torch.from_numpy(ln), torch.from_numpy(tn), torch.from_numpy(tln)
+        else:
+            x, lengths, targets, tlen = train_set.batch(next(gen), device, arng)
         for v in p.values():
             v.requires_grad_(True)
         logp = forward(c, p, x, args.front, checkpoint=args.checkpoint, mask_gen=mgen)
@@ -499,6 +529,7 @@ def main():
     t.add_argument('--test', required=True, help='the corpus the subset WER and best.pt follow')
     t.add_argument('--extra-test', default='', help='more corpora to score, comma-separated')
     t.add_argument('--init', type=Path, default=None, help='warm-start from a saved params.pt')
+    t.add_argument('--workers', type=int, default=0, help='processes preparing batches ahead of the GPU (0: in the training loop)')
     t.add_argument('--augment', action='store_true', help='speed, room, tilt and noise on the audio; masks on the features (training only)')
     t.add_argument('--test-limit', type=int, default=0, help='score only the first N utterances of each test corpus (smoke tests)')
     t.add_argument('--out', type=Path, required=True)
