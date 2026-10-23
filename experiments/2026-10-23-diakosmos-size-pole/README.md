@@ -18,6 +18,18 @@ exact recipe, beat his trained result of 1.4194 bits a byte?
   GPT-2 baseline's 18,538,212 bytes: 1.9806 at update 640, 1.6842 at 2,560,
   1.5712 at 5,120, 1.4673 at 10,240, **1.4194 ± 0.0023** at the end. GPT-2
   small on the same bytes and card: 1.4417 after 25.2 GPU hours.
+- LRU ([Orvieto et al. 2023, Resurrecting Recurrent Neural Networks](https://arxiv.org/abs/2303.06349)):
+  the polar pole is essentially LRU's parametrization of a diagonal complex
+  recurrence, lambda = exp(-exp(nu_log) + i exp(theta_log)): a magnitude that
+  is the exponential of minus an exponential, so it stays inside the unit
+  circle for any parameter value, and a separately learned phase. Ours,
+  c = exp(-(gammaMin + e^rho)) e^(i omega), adds the floor gammaMin = 1/2000
+  and learns omega directly rather than its logarithm; LRU's input
+  normalisation is not used. Borrowed: the stable exp-exp magnitude and the
+  separate phase. Ours: the measurement, swapping it for Diakosmos's real
+  decay at equal parameters and multiply-adds on OpenWebText bytes (and on
+  speech, speech-pole-form), and the verified statements about it on
+  proofs.blah.dev.
 - text-pole-form (this repo): the polar pole beats the real decay by
   0.036–0.043 bpb at 3.4 M parameters and 3K updates, two seeds, at equal
   parameters and multiply-adds; the gap was 0.037 at 13.5K updates on one seed.
