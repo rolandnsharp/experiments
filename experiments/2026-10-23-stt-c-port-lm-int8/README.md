@@ -116,3 +116,20 @@ of blanks the phrase is re-decoded with the 3-gram and its line replaced. Roland
 round-3 oscillator model (int8): "it works with nice low latency, not like slow whisper that
 doesn't print out in real time." Latency and accuracy on his voice are not measured yet.
 
+## Addendum: LM weights tuned on dev, all of test-clean (2026-10-23)
+
+The 200-utterance numbers above (and the 0.166 for the round-3 osc model in
+[stt-front-osc-vs-mel-mlp](../2026-10-23-stt-front-osc-vs-mel-mlp/)) were tuned and reported on the
+same utterances, which are also the first, easier speakers of test-clean. Clean version
+(`tune-dev.sh`, `tune-dev-r3osc.txt`): round-3 osc model, int8 C port, alpha and beta chosen on the
+first 300 dev-clean utterances (from the packed mu-law copy; the lab has no dev-clean FLAC), then
+all 2,620 test-clean utterances scored once from FLAC:
+
+| decoding | test-clean WER / CER |
+|---|---|
+| greedy | 0.390 / 0.121 (PyTorch float32: 0.386 / 0.120) |
+| beam 32 + 3-gram, alpha 0.5, beta 1.0 | 0.203 / 0.085 |
+| beam 64 + 3-gram, alpha 0.5, beta 1.0 | **0.194 / 0.081** |
+
+These are the numbers to quote.
+

@@ -1,0 +1,18 @@
+dev alpha 0.3 beta 0.0: WER 0.236 CER 0.099 over 300 utterances
+dev alpha 0.3 beta 0.5: WER 0.237 CER 0.098 over 300 utterances
+dev alpha 0.3 beta 1.0: WER 0.240 CER 0.098 over 300 utterances
+dev alpha 0.3 beta 2.0: WER 0.256 CER 0.099 over 300 utterances
+dev alpha 0.5 beta 0.0: WER 0.232 CER 0.104 over 300 utterances
+dev alpha 0.5 beta 0.5: WER 0.225 CER 0.100 over 300 utterances
+dev alpha 0.5 beta 1.0: WER 0.221 CER 0.098 over 300 utterances
+dev alpha 0.5 beta 2.0: WER 0.224 CER 0.095 over 300 utterances
+dev alpha 0.7 beta 0.0: WER 0.262 CER 0.118 over 300 utterances
+dev alpha 0.7 beta 0.5: WER 0.254 CER 0.114 over 300 utterances
+dev alpha 0.7 beta 1.0: WER 0.235 CER 0.108 over 300 utterances
+dev alpha 0.7 beta 2.0: WER 0.223 CER 0.101 over 300 utterances
+chosen on dev: alpha 0.5 beta 1.0 (dev alpha 0.5 beta 1.0: WER 0.221 CER 0.098 over 300 utterances)
+dev-clean 300, greedy: WER 0.415 CER 0.135 over 300 utterances
+test-clean 2620, greedy, int8 C port: WER 0.390 CER 0.121 over 2620 utterances
+test-clean 2620, beam 32 + 3-gram, alpha 0.5 beta 1.0: WER 0.203 CER 0.085 over 2620 utterances
+test-clean 2620, beam 64 + 3-gram, alpha 0.5 beta 1.0: WER 0.194 CER 0.081 over 2620 utterances
+done
