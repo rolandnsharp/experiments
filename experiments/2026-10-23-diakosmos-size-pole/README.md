@@ -2,8 +2,10 @@
 
 **Record.** [EXP-0011](https://experiments.blah.dev/EXP-0011) on experiments.blah.dev; the numbers there and here match.
 
-**Date.** 2026-10-23. **Status.** running: predictions 1 and 2 held at 640 updates; the polar arm
-continues to 15,360 on Roland's account when Roland says go.
+**Date.** 2026-10-23. **Status.** predictions 1 and 2 held at 640 updates; the full polar run is
+**held** (2026-10-24 10:38 UTC, a deviation on EXP-0011): after the 4-layer gated-MLP result
+(EXP-0024, -0.118 bpb at equal parameters) the account's credit goes to a full-size run of the
+improved block instead; this run resumes from its 640-update checkpoint when restarted.
 
 ## Question
 
