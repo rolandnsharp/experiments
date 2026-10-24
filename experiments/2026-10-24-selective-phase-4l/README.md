@@ -2,7 +2,7 @@
 
 **Record.** [EXP-0028](https://experiments.blah.dev/EXP-0028) on experiments.blah.dev; the numbers there and here match. This protocol was committed to git before launch while the site was unreachable; the site record was created from it and pre-registered at 10:02–10:04 UTC, and its methodology states which runs had started by then.
 
-**Date.** 2026-10-24. **Status.** pre-registered; running.
+**Date.** 2026-10-24. **Status.** concluded 2026-10-24: supported, barely; not worth its cost alone.
 
 ## Question
 
@@ -62,4 +62,17 @@ weights to 1.9e-5; every new weight gets a gradient and is in the Adam group.
 
 ## Results
 
-(pending)
+| seed | control | input-dependent rotation | gain |
+|---|---|---|---|
+| 0 | 2.0490 | 2.0307 | 0.018 |
+| 1 | 2.0409 | 2.0359 | 0.005 |
+
+Mean gain 0.012 (seed spread of the gain 0.013), at 1.53–1.54 s an update against the control's
+0.75 s on community 3090s; $0.29 + $0.29.
+
+## Verdict
+
+Prediction 1 met at its edge (mean 0.012, both seeds below the control). Prediction 2 missed: twice
+the step time (the per-position angle tensor in the chunked recurrence). The weakest of the cheap
+changes beside the MLP (0.114), the gate (0.072) and the convolution (0.042); its worth beside them
+is the factorial's question (EXP-0029).
