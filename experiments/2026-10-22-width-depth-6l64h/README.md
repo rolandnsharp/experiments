@@ -1,7 +1,6 @@
 # Model size 4L/32H → 6L/64H, polar dense, 36 h on one GPU
 
-**Date.** 2026-10-22. **Status.** running (pod 5mve5k8pmmu0c6 after a restart, community RTX
-3090, started 01:58 UTC). This section was written before the benchmark
+**Date.** 2026-10-22. **Status.** done (bpb); CORE pending. This section was written before the benchmark
 finished; the results section is empty until the run ends.
 
 ## Question
@@ -96,12 +95,27 @@ runs about 0.02 below the full held-out at this scale (30K run: subset
 1.8238 at 29.5K vs full 1.8469). Not a verdict: the prediction is on the
 full held-out at the end of the run, which also sees 2.3x the bytes.
 
-(pending: the full curve, final bpb, CORE smoke and standard, compute.json)
+**Final (2026-10-24 01:02 UTC).** The run was paused once at update 35,500 for
+the real-decay 30K control (2026-10-22 21:17 UTC) and resumed from its
+checkpoint on the shared account; 34.9 h of training in all. Held-out over all
+18,538,212 scored bytes after 69,154 updates (2.27 GB, one pass):
+**1.5799 bpb**. 19,667,012 parameters, 20.34 M MAC/byte (matrix 96%,
+recurrence 4%), training 2.77e17 FLOP.
+
+Subset curve (256 windows): 10K 1.7519, 20K 1.6865, 30K 1.6464, 40K 1.6152,
+50K 1.5881, 60K 1.5682, 69,154 1.5575 — still falling at the end.
+
+(pending: CORE smoke and standard)
 
 ## Verdict
 
-(pending)
+The bpb prediction (1.60–1.70) was too pessimistic: 1.5799, below its lower
+end. Not a clean size result, since size and bytes moved together (3.4 M at
+983 MB gave 1.8469). Still data-bound: the curve had not flattened at 2.27 GB.
+CORE pending.
 
 ## What it changes
 
-(pending)
+At 20 M parameters and 2.3 GB Vidya is at 1.58 bpb, against Diakosmos's 1.42 at
+100 M and 2.0 GB; the size and recipe comparison now runs as
+diakosmos-size-pole.

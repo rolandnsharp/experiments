@@ -100,6 +100,7 @@ launchers `lrcheck-*`).
 | 1x (0.003) | 2.0849 | 2.0490 | 0.036 |
 | 2x | 2.0519 | 2.0157 | 0.036 |
 | 4x | 2.0381 | 2.0039 | 0.034 |
+| 8x | 2.0360 | 1.9992 | 0.037 |
 
 Real 2x: pod 6pjs8ct6mv5rrt, 1,888 s; real 4x: 1,723 s; polar 4x: pod
 3se6eb4flh8diw, 09:31–10:20 UTC.
@@ -121,8 +122,14 @@ All three predictions held, on one seed at 3K updates:
   inside the predicted 0.01–0.04, and it is 0.036, 0.036, 0.034 at 1x, 2x
   and 4x: **the pole result is not an artefact of the learning rate.**
 
-Not settled: both forms still improve from 2x to 4x (real by 0.014, polar
-by 0.012), so the best rate may lie above 4x for both; an 8x pair would say.
+The 8x pair (Roland's account, community 3090s, 2026-10-23 evening): real
+2.0360, polar 1.9992, a gain of 0.037. Both forms are flat from 4x to 8x
+(−0.002 and −0.005), so the best rate at 3K is about 4–8x and the pole gain
+there is 0.034–0.037, the same as at 1x.
+
+At 30K the ternary session's float polar 2x run scored 1.8396 against 1x's
+1.8469, a gain of only 0.007 (0.033 at 3K), as Björck et al. predict: the 1x
+30K pole comparison in text-pole-form is close to fairly tuned.
 And Björck et al. 2024 says the best rate falls with more training, so these
 3K numbers don't set the rate for a 30K run.
 
