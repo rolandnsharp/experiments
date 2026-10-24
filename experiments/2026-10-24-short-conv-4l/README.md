@@ -1,11 +1,8 @@
 # A short causal convolution on q, k, v
 
-**Record.** EXP id pending: experiments.blah.dev was unreachable when this protocol was written
-(2026-10-24 ~10:00 UTC). This file, committed before the first run was launched, is the
-pre-registration; the site record is created from it once the server is back, and its
-methodology states the dates.
+**Record.** [EXP-0026](https://experiments.blah.dev/EXP-0026) on experiments.blah.dev; the numbers there and here match. This protocol was committed to git before launch while the site was unreachable; the site record was created from it and pre-registered at 10:02–10:04 UTC, and its methodology states which runs had started by then.
 
-**Date.** 2026-10-24. **Status.** pre-registered (in git), runs not yet launched.
+**Date.** 2026-10-24. **Status.** pre-registered; running.
 
 ## Question
 
