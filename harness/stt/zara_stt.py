@@ -469,7 +469,8 @@ def train(args):
             p = {k: v.detach() for k, v in p.items()}
             norm = upd(p, grads)
         if step % 20 == 0 or step == args.updates - 1:
-            say(f'step {step:6d}  ctc loss {l.item():.3f}  gradnorm {norm:.3f}  {x.shape[0]} utt x {x.shape[1] / RATE:.1f} s  {time.time() - t0:.0f} s')
+            say(f'step {step:6d}  ctc loss {l.item():.3f}  gradnorm {norm:.3f}  {x.shape[0]} utt x {x.shape[1] / RATE:.1f} s  {time.time() - t0:.0f} s'
+                + (f'  peak {torch.cuda.max_memory_allocated() / 2**30:.1f} GiB' if device.type == 'cuda' else ''))
         if (step + 1) % args.eval_every == 0 or step == args.updates - 1:
             r = evaluate(c, p, test_set, args.front, device, limit=args.eval_utterances)
             say(f'step {step:6d}  test ({r["utterances"]} utt) WER {r["wer"]:.3f} CER {r["cer"]:.3f}  e.g. "{r["examples"][0]["hyp"]}" for "{r["examples"][0]["ref"]}"')
