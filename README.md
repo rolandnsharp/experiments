@@ -38,6 +38,10 @@ modality, any lab member.
 8. **Rerunnable.** A paper carries enough (code, data, settings, seeds) for a
    reader who doubts the result to rerun it. Review is welcome, not required;
    an objection, when someone writes one, goes into the paper.
+9. **Recorded on experiments.blah.dev.** Each experiment is created and
+   pre-registered there (through blah.dev's MCP server, the `experiments_*`
+   tools) before its first run, gets each run as it ends, and is concluded
+   there. Its write-up here names its EXP id, and the numbers in both match.
 
 ## Experiments and proofs
 
