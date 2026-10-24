@@ -65,7 +65,10 @@ Q_INIT = 2.0                      # initial f = Q / (pi tau): a 2 s pole at 0.3 
 
 
 # ---- parameters ----
-def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense'):
+def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False):
+    """mlp F > 0: a SwiGLU MLP of hidden width F after every block (blocks.i.mlp.*); select: the polar
+    pole's decay made input-dependent (temporal.attn.pole_decay_select, zero at the start). Both draw
+    from their own generator after everything else, so without them the parameters are as before."""
     p = O.initialize(c, seed, torch.float64)
     H, L, dh = c.heads, c.kan, c.head_width
     g = torch.Generator().manual_seed(seed + 7)
@@ -103,6 +106,22 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense'):
             p[a + 'pole_decay_b'] = gamma * torch.sin(omega)
         else:
             raise SystemExit(f'unknown variant {variant}')
+    if mlp or select:
+        g2 = torch.Generator().manual_seed(seed + 11)
+        D = c.d
+        new = {}
+        for i in range(c.layers):
+            if mlp:
+                m = f'blocks.{i}.mlp.'
+                new[m + 'ln.weight'] = torch.ones(D, dtype=torch.float64)
+                new[m + 'ln.bias'] = torch.zeros(D, dtype=torch.float64)
+                for name, shape, fan in (('fc1.weight', (mlp, D), D), ('fc3.weight', (mlp, D), D), ('fc2.weight', (D, mlp), mlp)):
+                    new[m + name] = (torch.rand(shape, generator=g2, dtype=torch.float64) * 2 - 1) / math.sqrt(fan)
+            if select:
+                if variant != 'polar':
+                    raise SystemExit('--select needs the polar variant')
+                new[f'blocks.{i}.temporal.attn.pole_decay_select'] = torch.zeros(H * L, D, dtype=torch.float64)
+        p.update(O.centre_rotational(new))
     return {k: v.to(dtype) for k, v in p.items()}
 
 
@@ -254,6 +273,77 @@ def recurrence(qh, kh, v, logr, theta):
     return read.reshape(B, T, H, dh)
 
 
+def recurrence_selective(qh, kh, v, la, theta):
+    """recurrence() with a magnitude that varies along the sequence: c_t = exp(la_t) e^(i theta),
+    la [B][T][H][L] <= 0, theta [H][L]. Products of the c_j are exp of sums of la within a chunk
+    (G, a cumulative sum) times the rotation by theta per step; with la constant it is
+    recurrence(qh, kh, v, la, theta) up to rounding."""
+    B, T, H, L = kh.shape
+    dh = v.shape[-1]
+    C = CHUNK
+    assert T % C == 0
+    n = T // C
+    G = la.reshape(B, n, C, H, L).permute(0, 1, 3, 4, 2).cumsum(-1)     # [B][n][H][L][C]: sum of la over 0..t
+    t = torch.arange(C, device=kh.device)
+    lag = t[:, None] - t[None, :]
+    causal = lag >= 0
+    ang = theta[:, :, None, None] * lag.clamp(min=0)                      # [H][L][C][C]
+    cosL, sinL = torch.cos(ang) * causal, torch.sin(ang) * causal
+    E = torch.exp((G[..., :, None] - G[..., None, :]).masked_fill(~causal, float('-inf')))   # [B][n][H][L][t][s]
+    q_re, q_im = qh[..., :L], (qh[..., L:] if qh.shape[-1] > L else None)
+    qc = q_re.view(B, n, C, H, L)
+    kc = kh.view(B, n, C, H, L)
+    vc = v.view(B, n, C, H, dh)
+    A = torch.einsum('bnthl,bnshl,bnhlts->bnhts', qc, kc, E * cosL)
+    if q_im is not None:
+        A = A + torch.einsum('bnthl,bnshl,bnhlts->bnhts', q_im.view(B, n, C, H, L), kc, E * sinL)
+    read = torch.einsum('bnhts,bnshd->bnthd', A, vc)
+    # across chunks: c_0..c_t applied to the state at the chunk's start; the injection at s carried by
+    # c_(s+1)..c_(C-1); the whole chunk's product
+    step_ang = theta[:, :, None] * (t + 1)                                # [H][L][C]
+    end_ang = theta[:, :, None] * (C - 1 - t)
+    Sre = torch.zeros(B, H, L, dh, dtype=v.dtype, device=v.device)
+    Sim = torch.zeros_like(Sre)
+    carries = []
+    for i in range(n):
+        Gi = G[:, i]                                                       # [B][H][L][C]
+        smag = torch.exp(Gi)
+        step_re, step_im = smag * torch.cos(step_ang), smag * torch.sin(step_ang)
+        emag = torch.exp(Gi[..., -1:] - Gi)
+        end_re, end_im = emag * torch.cos(end_ang), emag * torch.sin(end_ang)
+        cmag = torch.exp(Gi[..., -1])                                       # [B][H][L]
+        cC_re, cC_im = cmag * torch.cos(theta * C), cmag * torch.sin(theta * C)
+        Wre = step_re[..., None] * Sre[:, :, :, None, :] - step_im[..., None] * Sim[:, :, :, None, :]
+        Wim = step_re[..., None] * Sim[:, :, :, None, :] + step_im[..., None] * Sre[:, :, :, None, :]
+        carry = torch.einsum('bthl,bhltd->bthd', qc[:, i], Wre)
+        if q_im is not None:
+            carry = carry + torch.einsum('bthl,bhltd->bthd', q_im.view(B, n, C, H, L)[:, i], Wim)
+        carries.append(carry)
+        inj_re = torch.einsum('bshl,bhls,bshd->bhld', kc[:, i], end_re, vc[:, i])
+        inj_im = torch.einsum('bshl,bhls,bshd->bhld', kc[:, i], end_im, vc[:, i])
+        Sre, Sim = (cC_re[..., None] * Sre - cC_im[..., None] * Sim + inj_re,
+                    cC_re[..., None] * Sim + cC_im[..., None] * Sre + inj_im)
+    read = read + torch.stack(carries, dim=1)
+    return read.reshape(B, T, H, dh)
+
+
+def selective_logmag(p, a, u):
+    """The input-dependent pole magnitude's log, -(gmin + e^(rho + u Ws')), [B][T][H][L] (or [H][L] for one position)."""
+    rho = p[a + 'pole_decay_rho']
+    s = (u @ p[a + 'pole_decay_select'].T).view(*u.shape[:-1], *rho.shape)
+    return -(GMIN + torch.exp(rho + s))
+
+
+def mlp(p, prefix, z):
+    """The SwiGLU MLP after a block, when the block has one: z + W2 (silu(W1 u) * W3 u), u = LN(z)."""
+    m = prefix + 'mlp.'
+    if m + 'fc1.weight' not in p:
+        return z
+    u = O.layer_norm(z, p[m + 'ln.weight'], p[m + 'ln.bias'])
+    h = F.silu(half_product(u, p[m + 'fc1.weight'])) * half_product(u, p[m + 'fc3.weight'])
+    return z + half_product(h, p[m + 'fc2.weight'])
+
+
 def block(c, p, prefix, z, variant):
     """The oracle's block with the recurrence above."""
     B, T, D = z.shape
@@ -270,7 +360,10 @@ def block(c, p, prefix, z, variant):
     qh = torch.einsum('bthd,hld->bthl', q, p[a + 'q_harmonic_weight'])
     kh = torch.einsum('bthd,hld->bthl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
     logr, theta = pole(p, a, variant)
-    read = recurrence(qh, kh, v, logr, theta)
+    if a + 'pole_decay_select' in p:
+        read = recurrence_selective(qh, kh, v, selective_logmag(p, a, u), theta)
+    else:
+        read = recurrence(qh, kh, v, logr, theta)
     if a + 'out_group.weight' in p:
         temporal = torch.einsum('bthd,hed->bthe', read, p[a + 'out_group.weight']).reshape(B, T, D) + p[a + 'out_proj.bias']
     else:
@@ -285,7 +378,7 @@ def block(c, p, prefix, z, variant):
     rotated = torch.cat((rotated, n.new_zeros(B, T, O.GROUPS - 2 * pairs, W)), dim=2)
     spatial = p[prefix + 'spatial.coupling'][:, None] * rotated
     gate = torch.sigmoid(p[prefix + 'gate_logit'])[:, None]
-    return z + (gate * temporal.view(B, T, O.GROUPS, W) + (1 - gate) * spatial).reshape(B, T, D)
+    return mlp(p, prefix, z + (gate * temporal.view(B, T, O.GROUPS, W) + (1 - gate) * spatial).reshape(B, T, D))
 
 
 def forward(c, p, table, x, variant, checkpoint=False):
@@ -336,6 +429,8 @@ class Sampler:
             qh = torch.einsum('hd,hld->hl', q, p[a + 'q_harmonic_weight'])
             kh = torch.einsum('hd,hld->hl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
             logr, theta = self.poles[i]
+            if a + 'pole_decay_select' in p:
+                logr = selective_logmag(p, a, u)
             cre, cim = torch.exp(logr) * torch.cos(theta), torch.exp(logr) * torch.sin(theta)
             Sre, Sim = self.S[i]
             inj = kh[:, :, None] * v[:, None, :]
@@ -357,7 +452,7 @@ class Sampler:
             rotated = torch.cat((rotated, n.new_zeros(O.GROUPS - 2 * pairs, W)), dim=0)
             spatial = p[prefix + 'spatial.coupling'][:, None] * rotated
             gate = torch.sigmoid(p[prefix + 'gate_logit'])[:, None]
-            z = z + (gate * temporal.view(O.GROUPS, W) + (1 - gate) * spatial).reshape(-1)
+            z = mlp(p, prefix, z + (gate * temporal.view(O.GROUPS, W) + (1 - gate) * spatial).reshape(-1))
         f = O.layer_norm(z, p['ln_f.weight'], p['ln_f.bias'])
         fg = f.view(O.GROUPS, W)
         self.sum = self.sum + fg

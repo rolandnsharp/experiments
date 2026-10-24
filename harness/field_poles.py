@@ -121,7 +121,7 @@ def train(args):
         log.flush()
     stream = TextStream(args.bytes, args.shards)
     table = O.wire_table(c.harmonics).to(device)
-    p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing).items()}
+    p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select).items()}
     count = sum(v.numel() for v in p.values())
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
         f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
@@ -130,7 +130,9 @@ def train(args):
         + (' ternary qkv/out projections' if args.ternary else '')
         + (' int8 projection inputs' if args.act8 else '')
         + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else '')
-        + (f' compile {args.compile}' if args.compile != 'none' else ''))
+        + (f' compile {args.compile}' if args.compile != 'none' else '')
+        + (f' mlp {args.mlp}' if args.mlp else '')
+        + (' selective decay' if args.select else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -200,6 +202,10 @@ def train(args):
               'trainBytesSeen': args.updates * per * O.FULL_CONTEXT,
               'shards': stream.shards, 'trainBytes': stream.cat.size,
               'seconds': time.time() - t0, 'heldoutBpb': full, 'curve': curve, 'samples': {}}
+    if args.mlp:
+        result['mlp'] = args.mlp
+    if args.select:
+        result['select'] = True
     if args.ternary or args.act8 or args.lr_scale != 1:
         # what a scorer needs to rebuild the forward (core_server.py reads 'ternary' and 'act8')
         result['ternary'], result['act8'], result['lrScale'] = args.ternary, args.act8, args.lr_scale
@@ -245,6 +251,8 @@ def main():
     t.add_argument('--ternary', action='store_true', help="the blocks' qkv and out projections ternary in the forward (BitNet b1.58: absmean scale, straight-through gradient)")
     t.add_argument('--act8', action='store_true', help="the blocks' qkv and out projection inputs rounded to int8 per position in the forward (BitNet b1.58 absmax, straight-through gradient)")
     t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
+    t.add_argument('--mlp', type=int, default=0, help='a SwiGLU MLP of this hidden width after every block (default 0: none)')
+    t.add_argument('--select', action='store_true', help="the polar pole's decay made input-dependent (zero at the start)")
     t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
                    help='torch.compile the chunked recurrence (default none)')
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')
