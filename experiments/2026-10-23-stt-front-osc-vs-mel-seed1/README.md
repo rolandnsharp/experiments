@@ -1,6 +1,6 @@
 # Speech recognition: oscillator front vs mel, second seed
 
-**Date.** 2026-10-23. **Status.** running (one RTX 3090). Prediction written before the run.
+**Date.** 2026-10-23. **Status.** first attempt failed before training (disk full); not yet rerun. Prediction written before the run.
 
 ## Question
 
@@ -38,3 +38,15 @@ RunPod community RTX 3090, $0.22/h, estimated 12–14 h ≈ $3.
 ## Results, Decided vs measured, Verdict, What it changes
 
 Pending.
+
+### Attempt 1 (failed before training, 2026-10-23 11:50 to 2026-10-24 07:25 UTC)
+
+Pod `roland-stt5-3090-3` (RTX 3090, $0.22/h) was given a 70 GB disk to save money. Round 4 had
+ended at 53 GB used on 100 GB, but the peak is higher: while train-other-500 is being packed, its
+extracted FLAC files (~30 GB) and the growing packed file (28.6 GB) sit beside the other packed
+subsets (27 GB). The disk filled at 16:24 with train-other-500 half packed (15.4 of 28.6 GB); the
+128 packer processes then blocked on writes and never exited, so the driver kept waiting. Found and
+removed 2026-10-24 07:25. No training ran; nothing to score. Cost ≈ $4.30 for nothing.
+
+Fixes for the rerun: disk 100 GB, and the driver should treat "no change in the data log for an
+hour" as a failure and stop the pod.
