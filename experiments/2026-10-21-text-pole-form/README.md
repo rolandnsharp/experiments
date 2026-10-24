@@ -4,7 +4,7 @@
 
 **Date.** 2026-10-21 (seed 0, secure 3090), 2026-10-21/22 (seed 1 and the long
 real arm, community 3090). **Status.** done at 3K updates with two seeds; done at
-30K updates with seed 0 (2026-10-23); the 30K real arm's seed 1 is queued.
+30K updates with seed 0 (2026-10-23); the 30K real arm's seed 1 done 2026-10-24.
 
 ## Question
 
@@ -98,6 +98,11 @@ bytes:
 |---|---|---|---|
 | 30,000 | 1.8841 | 1.8469 | **0.037** |
 
+The real arm's seed 1 (shared account, community 3090, finished 2026-10-24,
+`real-dense-4L32H-s1-u30000-b16/`): **1.8817**, 0.0024 from seed 0, so the
+real arm's seed spread at a full pass is a fifteenth of the gap; the gap to
+the polar seed 0 is 0.035. The polar arm has one seed at 30K.
+
 The subset curve at the same updates (real / polar / gap): 3,000: 2.1000 /
 2.0677 / 0.032; 9,000: 1.9689 / 1.9329 / 0.036; 15,000: 1.9256 / 1.8898 /
 0.036; 21,000: 1.8997 / 1.8625 / 0.037; 27,000: 1.8662 / 1.8277 / 0.039;
@@ -143,7 +148,7 @@ the diakosmos-size-pole experiment's question.
 The polar pole is the kernel's recurrence in Alpha (Vidya.Pole, Vidya.Cell,
 PoleRecurrenceSM86). This is the headline experiment: the one variable that
 separates Vidya from Diakosmos, at equal parameters and equal multiply-adds
-per byte, everything else his. Still owed: a second seed of the 30K real arm
-(queued), so the 30K gap rests on two seeds as the 3K gap does. The gain
+per byte, everything else his. The 30K real arm has two seeds (1.8841,
+1.8817); the polar arm one (1.8469). The gain
 is small; the case for the architecture rests more on its compute profile
 than on the pole.
