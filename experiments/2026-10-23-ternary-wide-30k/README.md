@@ -1,10 +1,10 @@
 # Does the wide ternary model's lead grow with training? Ternary vs float from 3K to 30K updates
 
-**Date.** 2026-10-23. **Status.** running. Written at 09:50 UTC, before
-seed 1 of ternary-projections' arm C landed, gated on that seed holding.
-It held (1.9832 vs 1.9818, still ahead of float 4x's 2.0039), and Roland
-approved the launch. Launchers started at 10:27 UTC (MARKS `tw30k-t3`,
-`tw30k-f30`, `tw30k-t30`), waiting for 3090 stock.
+**Date.** 2026-10-23. **Status.** done (seed 0). Written at 09:50 UTC,
+before seed 1 of ternary-projections' arm C landed, gated on that seed
+holding. It held (1.9832 vs 1.9818, still ahead of float 4x's 2.0039), and
+Roland approved the launch at 10:27 UTC (MARKS `tw30k-t3`, `tw30k-f30`,
+`tw30k-t30`). All three arms finished by 20:56 UTC.
 
 ## Question
 
@@ -89,7 +89,29 @@ at 30K (one pass). Held out: the GPT-2 baseline's split (sha256 d0684974…,
 
 ## Results
 
-(none yet)
+Held-out bpb over all 18,538,212 scored bytes, seed 0, lr 2x:
+
+| updates (bytes) | float 4L/32H (6.77 MB) | ternary 4L/64H (3.90 MB) | ternary − float |
+|---|---|---|---|
+| 3K (98 MB) | 2.0157 (F3, learning-rate-4l32h) | **1.9897** (T3) | **−0.026** |
+| 30K (983 MB) | **1.8396** (F30) | **1.8344** (T30) | **−0.005** |
+
+Subset curves (256 windows) inside the 30K runs, float / ternary / gap:
+3K: 2.0557 / 2.0369 / −0.019; 6K: 1.9862 / 1.9811 / −0.005; 9K: 1.9306 /
+1.9289 / −0.002; 12K: 1.9040 / 1.9052 / +0.001; 15K: 1.8928 / 1.8907 /
+−0.002; 18K: 1.8770 / 1.8837 / +0.007; 21K: 1.8620 / 1.8619 / 0.000; 24K:
+1.8376 / 1.8327 / −0.005; 27K: 1.8242 / 1.8168 / −0.007; 30K: 1.8181 /
+1.8100 / −0.008. The lead is gone by 6K and the two run level from there,
+ternary a hair ahead at the end.
+
+F30 against the 1x float 30K run (training-bytes-vs-bpb-and-core, 1.8469):
+−0.007 from the 2x rate at 30K, against −0.033 at 3K. The rate gain shrinks
+with the horizon, as Björck et al. predict.
+
+Compute: F30 3.62 M MAC/byte, 2.14e16 training FLOP, 23,272 s (pod
+7zld3vjdkxy14k); T30 13.64 M MAC/byte (96% ternary adds), 8.05e16 FLOP,
+35,064 s (pod 23h9qch0yt0q3i). T3: 1.9897 bpb, pod 6h18pkum3ijcs3 (RTX
+3070). About $4 in all.
 
 Report beside bpb: model bytes, multiply-adds per byte (true multiplies vs
 ternary adds), training FLOP, wall-clock, cost; the subset curve for both
@@ -103,7 +125,24 @@ Measured: every bpb and CORE number, one seed.
 
 ## Verdict
 
-(none yet)
+Seed 0. The prediction held for T3 (1.9897, predicted 1.98–2.00) and for
+F30 (1.8396, predicted 1.825–1.845). It **failed for T30**: 1.8344 against a
+predicted 1.76–1.80. **The lead did not grow; it shrank from 0.026 to
+0.005**, under the 0.02 we said would change our mind.
+
+So the wide ternary model's 3K advantage was mostly early-training speed:
+the larger width fits faster at first, and float catches up within about
+6K updates. Over a full pass the two are level in quality. Spectra 1.1's
+"ternary gains more from data" did not show here, at 13 M parameters on
+bytes.
+
+What survives is the bytes-and-arithmetic story, not a quality one: equal
+held-out bpb at 1.7x fewer model bytes (3.90 vs 6.77 MB), with the
+projections as integer adds. Against that, it does 3.8x the multiply-adds a
+byte and took 1.5x the training wall-clock.
+
+Caveats: one seed at 30K; one model size; lr 2x for both arms, which may
+not be either one's best at 30K.
 
 ## What it changes
 

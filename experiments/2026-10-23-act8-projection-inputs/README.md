@@ -1,7 +1,7 @@
 # 8-bit projection inputs on the wide ternary Vidya
 
-**Date.** 2026-10-23. **Status.** running: launched 12:13 UTC on Roland's account (MARKS `act8-w64`), waiting for 3090 stock. The code and the CPU check are
-done. The prediction was written at 12:10 UTC,
+**Date.** 2026-10-23. **Status.** done (seed 0): pod e3hg3r9xymagfm, 12:19–13:25 UTC. The code
+and the CPU check were done first. The prediction was written at 12:10 UTC,
 before any run with the flag.
 
 ## Question
@@ -101,7 +101,12 @@ scored bytes).
 
 ## Results
 
-(none yet)
+**D, seed 0: 1.9822 bpb** over all scored bytes, against C (the same model
+without `--act8`) at 1.9818 (seed 0) and 1.9832 (seed 1). The cost is
++0.0004 against seed 0 and −0.0003 against the mean: nothing measurable.
+The subset curve tracks C within 0.006 throughout (500: 2.2859 vs 2.2908;
+1000: 2.1683; 1500: 2.0704; 2000: 2.0331; 2500: 1.9899; 3000: 1.9609 vs
+1.9581).
 
 ## Decided vs measured
 
@@ -111,7 +116,11 @@ Measured: every bpb number.
 
 ## Verdict
 
-(none yet)
+Prediction held at its low end (cost 0.000–0.020; measured about 0.000),
+and it falls under the 0.005 we said would make int8 inputs free here. The
+worry about the recurrence read-out's dynamic range did not show at 8 bits.
+The projections can be int8 × ternary integer adds throughout. One seed for
+D, against two for C.
 
 ## What it changes
 
