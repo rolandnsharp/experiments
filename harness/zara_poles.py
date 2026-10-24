@@ -417,11 +417,15 @@ def erase_strength(p, a, u):
     return torch.sigmoid(u @ p[a + 'erase_gate_weight'].T + p[a + 'erase_gate_bias'])
 
 
+SELECT_CAP = 4.0       # rho + u Ws' is capped here: |c| >= e^-(gmin + e^4) ~ e^-55, already nothing, and
+                       # e^(rho + s) cannot overflow (an infinite log-magnitude makes the chunk sums inf - inf)
+
+
 def selective_logmag(p, a, u):
-    """The input-dependent pole magnitude's log, -(gmin + e^(rho + u Ws')), [B][T][H][L] (or [H][L] for one position)."""
+    """The input-dependent pole magnitude's log, -(gmin + e^min(rho + u Ws', cap)), [B][T][H][L] (or [H][L] for one position)."""
     rho = p[a + 'pole_decay_rho']
     s = (u @ p[a + 'pole_decay_select'].T).view(*u.shape[:-1], *rho.shape)
-    return -(GMIN + torch.exp(rho + s))
+    return -(GMIN + torch.exp((rho + s).clamp(max=SELECT_CAP)))
 
 
 def selective_theta(p, a, u):
