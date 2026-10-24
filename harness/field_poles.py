@@ -121,7 +121,8 @@ def train(args):
         log.flush()
     stream = TextStream(args.bytes, args.shards)
     table = O.wire_table(c.harmonics).to(device)
-    p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select).items()}
+    p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select,
+                                                                   conv=args.conv, gate=args.gate, phase=args.phase).items()}
     count = sum(v.numel() for v in p.values())
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
         f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
@@ -132,7 +133,10 @@ def train(args):
         + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else '')
         + (f' compile {args.compile}' if args.compile != 'none' else '')
         + (f' mlp {args.mlp}' if args.mlp else '')
-        + (' selective decay' if args.select else ''))
+        + (' selective decay' if args.select else '')
+        + (f' conv {args.conv}' if args.conv else '')
+        + (f' out gate {args.gate}' if args.gate else '')
+        + (' selective phase' if args.phase else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -206,6 +210,9 @@ def train(args):
         result['mlp'] = args.mlp
     if args.select:
         result['select'] = True
+    for k in ('conv', 'gate', 'phase'):
+        if getattr(args, k):
+            result[k] = getattr(args, k)
     if args.ternary or args.act8 or args.lr_scale != 1:
         # what a scorer needs to rebuild the forward (core_server.py reads 'ternary' and 'act8')
         result['ternary'], result['act8'], result['lrScale'] = args.ternary, args.act8, args.lr_scale
@@ -253,6 +260,9 @@ def main():
     t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
     t.add_argument('--mlp', type=int, default=0, help='a SwiGLU MLP of this hidden width after every block (default 0: none)')
     t.add_argument('--select', action='store_true', help="the polar pole's decay made input-dependent (zero at the start)")
+    t.add_argument('--conv', type=int, default=0, help='a causal depthwise convolution of this width added to q, k, v (zero at the start)')
+    t.add_argument('--gate', type=int, default=0, help='an output gate of this rank on the read, 2 sigmoid, 1 at the start')
+    t.add_argument('--phase', action='store_true', help="the polar pole's rotation made input-dependent (zero at the start)")
     t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
                    help='torch.compile the chunked recurrence (default none)')
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')

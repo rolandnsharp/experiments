@@ -65,10 +65,16 @@ Q_INIT = 2.0                      # initial f = Q / (pi tau): a 2 s pole at 0.3 
 
 
 # ---- parameters ----
-def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False):
+def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False,
+                conv=0, gate=0, phase=False):
     """mlp F > 0: a SwiGLU MLP of hidden width F after every block (blocks.i.mlp.*); select: the polar
     pole's decay made input-dependent (temporal.attn.pole_decay_select, zero at the start). Both draw
-    from their own generator after everything else, so without them the parameters are as before."""
+    from their own generator after everything else, so without them the parameters are as before.
+    conv K > 0: a causal depthwise convolution of width K added to q, k, v (temporal.attn.qkv_conv_kernel);
+    gate R > 0: the read scaled by 2 sigmoid(u A' B') of rank R before the out projection
+    (temporal.attn.out_gate_a, out_gate_b); phase: the polar pole's rotation made input-dependent
+    (temporal.attn.pole_omega_select). Each is the identity at the start (the kernel, B and the
+    selection zero) and draws from a third generator after the others."""
     p = O.initialize(c, seed, torch.float64)
     H, L, dh = c.heads, c.kan, c.head_width
     g = torch.Generator().manual_seed(seed + 7)
@@ -122,6 +128,20 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
                     raise SystemExit('--select needs the polar variant')
                 new[f'blocks.{i}.temporal.attn.pole_decay_select'] = torch.zeros(H * L, D, dtype=torch.float64)
         p.update(O.centre_rotational(new))
+    if conv or gate or phase:
+        g3 = torch.Generator().manual_seed(seed + 13)
+        D = c.d
+        for i in range(c.layers):
+            a = f'blocks.{i}.temporal.attn.'
+            if conv:
+                p[a + 'qkv_conv_kernel'] = torch.zeros(3 * D, conv, dtype=torch.float64)
+            if gate:
+                p[a + 'out_gate_a'] = (torch.rand((gate, D), generator=g3, dtype=torch.float64) * 2 - 1) / math.sqrt(D)
+                p[a + 'out_gate_b'] = torch.zeros(D, gate, dtype=torch.float64)
+            if phase:
+                if variant != 'polar':
+                    raise SystemExit('--phase needs the polar variant')
+                p[a + 'pole_omega_select'] = torch.zeros(H * L, D, dtype=torch.float64)
     return {k: v.to(dtype) for k, v in p.items()}
 
 
@@ -287,7 +307,12 @@ def recurrence_selective(qh, kh, v, la, theta):
     t = torch.arange(C, device=kh.device)
     lag = t[:, None] - t[None, :]
     causal = lag >= 0
-    ang = theta[:, :, None, None] * lag.clamp(min=0)                      # [H][L][C][C]
+    if theta.dim() == 4:
+        # a rotation per position, theta [B][T][H][L]: angles are differences of its cumulative sum
+        P = theta.reshape(B, n, C, H, L).permute(0, 1, 3, 4, 2).cumsum(-1)
+        ang = P[..., :, None] - P[..., None, :]                            # [B][n][H][L][t][s]
+    else:
+        ang = theta[:, :, None, None] * lag.clamp(min=0)                  # [H][L][C][C]
     cosL, sinL = torch.cos(ang) * causal, torch.sin(ang) * causal
     E = torch.exp((G[..., :, None] - G[..., None, :]).masked_fill(~causal, float('-inf')))   # [B][n][H][L][t][s]
     q_re, q_im = qh[..., :L], (qh[..., L:] if qh.shape[-1] > L else None)
@@ -300,19 +325,25 @@ def recurrence_selective(qh, kh, v, la, theta):
     read = torch.einsum('bnhts,bnshd->bnthd', A, vc)
     # across chunks: c_0..c_t applied to the state at the chunk's start; the injection at s carried by
     # c_(s+1)..c_(C-1); the whole chunk's product
-    step_ang = theta[:, :, None] * (t + 1)                                # [H][L][C]
-    end_ang = theta[:, :, None] * (C - 1 - t)
+    if theta.dim() != 4:
+        step_ang = theta[:, :, None] * (t + 1)                            # [H][L][C]
+        end_ang = theta[:, :, None] * (C - 1 - t)
     Sre = torch.zeros(B, H, L, dh, dtype=v.dtype, device=v.device)
     Sim = torch.zeros_like(Sre)
     carries = []
     for i in range(n):
         Gi = G[:, i]                                                       # [B][H][L][C]
+        if theta.dim() == 4:
+            Pi = P[:, i]
+            step_ang, end_ang, chunk_ang = Pi, Pi[..., -1:] - Pi, Pi[..., -1]
+        else:
+            chunk_ang = theta * C
         smag = torch.exp(Gi)
         step_re, step_im = smag * torch.cos(step_ang), smag * torch.sin(step_ang)
         emag = torch.exp(Gi[..., -1:] - Gi)
         end_re, end_im = emag * torch.cos(end_ang), emag * torch.sin(end_ang)
         cmag = torch.exp(Gi[..., -1])                                       # [B][H][L]
-        cC_re, cC_im = cmag * torch.cos(theta * C), cmag * torch.sin(theta * C)
+        cC_re, cC_im = cmag * torch.cos(chunk_ang), cmag * torch.sin(chunk_ang)
         Wre = step_re[..., None] * Sre[:, :, :, None, :] - step_im[..., None] * Sim[:, :, :, None, :]
         Wim = step_re[..., None] * Sim[:, :, :, None, :] + step_im[..., None] * Sre[:, :, :, None, :]
         carry = torch.einsum('bthl,bhltd->bthd', qc[:, i], Wre)
@@ -332,6 +363,31 @@ def selective_logmag(p, a, u):
     rho = p[a + 'pole_decay_rho']
     s = (u @ p[a + 'pole_decay_select'].T).view(*u.shape[:-1], *rho.shape)
     return -(GMIN + torch.exp(rho + s))
+
+
+def selective_theta(p, a, u):
+    """The input-dependent pole rotation, omega + u Wo', [B][T][H][L] (or [H][L] for one position)."""
+    omega = p[a + 'pole_omega']
+    return omega + (u @ p[a + 'pole_omega_select'].T).view(*u.shape[:-1], *omega.shape)
+
+
+def qkv_conv(p, a, qkv, history=None):
+    """qkv plus its causal depthwise convolution, sum_j kernel[:, j] qkv[t - j], over the last dimension's
+    channels; qkv [B][T][3D] (zero before the window), or one position [3D] with history the K - 1
+    positions before it, newest last."""
+    w = p[a + 'qkv_conv_kernel']
+    K = w.shape[1]
+    if history is not None:
+        x = torch.stack(history + [qkv])                                   # [K][3D], oldest first
+        return qkv + (w.flip(1).t() * x).sum(0)
+    x = F.pad(qkv, (0, 0, K - 1, 0))
+    T = qkv.shape[1]
+    return qkv + sum(w[:, j] * x[:, K - 1 - j:K - 1 - j + T] for j in range(K))
+
+
+def out_gate(p, a, u, read):
+    """read scaled channel by channel by 2 sigmoid(u A' B'), 1 at the start."""
+    return read * 2 * torch.sigmoid((u @ p[a + 'out_gate_a'].T) @ p[a + 'out_gate_b'].T)
 
 
 def mlp(p, prefix, z):
@@ -356,14 +412,21 @@ def block(c, p, prefix, z, variant):
         qkv = qkv + p[a + 'qkv_proj.bias'].view(1, 1, 3, H, dh)
     else:
         qkv = (half_product(projection_input(u), projection(p, a + 'qkv_proj.weight')) + p[a + 'qkv_proj.bias']).view(B, T, 3, H, dh)
+    if a + 'qkv_conv_kernel' in p:
+        qkv = qkv_conv(p, a, qkv.reshape(B, T, 3 * D)).view(B, T, 3, H, dh)
     q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
     qh = torch.einsum('bthd,hld->bthl', q, p[a + 'q_harmonic_weight'])
     kh = torch.einsum('bthd,hld->bthl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
     logr, theta = pole(p, a, variant)
-    if a + 'pole_decay_select' in p:
+    if a + 'pole_omega_select' in p:
+        la = selective_logmag(p, a, u) if a + 'pole_decay_select' in p else logr.expand(B, T, H, L)
+        read = recurrence_selective(qh, kh, v, la, selective_theta(p, a, u))
+    elif a + 'pole_decay_select' in p:
         read = recurrence_selective(qh, kh, v, selective_logmag(p, a, u), theta)
     else:
         read = recurrence(qh, kh, v, logr, theta)
+    if a + 'out_gate_a' in p:
+        read = out_gate(p, a, u, read.reshape(B, T, D)).view(B, T, H, dh)
     if a + 'out_group.weight' in p:
         temporal = torch.einsum('bthd,hed->bthe', read, p[a + 'out_group.weight']).reshape(B, T, D) + p[a + 'out_proj.bias']
     else:
@@ -410,6 +473,9 @@ class Sampler:
         H, L, dh = c.heads, c.kan, c.head_width
         self.S = [(torch.zeros(H, L, dh, device=table.device), torch.zeros(H, L, dh, device=table.device)) for _ in range(c.layers)]
         self.poles = [pole(p, f'blocks.{i}.temporal.attn.', variant) for i in range(c.layers)]
+        K = {i: p[f'blocks.{i}.temporal.attn.qkv_conv_kernel'].shape[1] for i in range(c.layers)
+             if f'blocks.{i}.temporal.attn.qkv_conv_kernel' in p}
+        self.history = {i: [torch.zeros(3 * c.d, device=table.device)] * (k - 1) for i, k in K.items()}
         self.sum = torch.zeros(O.GROUPS, c.width, device=table.device)
         self.count = 0
 
@@ -425,12 +491,18 @@ class Sampler:
                 qkv = torch.einsum('hd,hed->he', u.view(H, dh), p[a + 'qkv_group.weight']).view(H, 3, dh).transpose(0, 1) + p[a + 'qkv_proj.bias'].view(3, H, dh)
             else:
                 qkv = (projection_input(u) @ projection(p, a + 'qkv_proj.weight').T + p[a + 'qkv_proj.bias']).view(3, H, dh)
+            if i in self.history:
+                flat = qkv.reshape(-1)
+                qkv = qkv_conv(p, a, flat, self.history[i]).view(3, H, dh)
+                self.history[i] = (self.history[i] + [flat])[1:]
             q, k, v = qkv[0], qkv[1], qkv[2]
             qh = torch.einsum('hd,hld->hl', q, p[a + 'q_harmonic_weight'])
             kh = torch.einsum('hd,hld->hl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
             logr, theta = self.poles[i]
             if a + 'pole_decay_select' in p:
                 logr = selective_logmag(p, a, u)
+            if a + 'pole_omega_select' in p:
+                theta = selective_theta(p, a, u)
             cre, cim = torch.exp(logr) * torch.cos(theta), torch.exp(logr) * torch.sin(theta)
             Sre, Sim = self.S[i]
             inj = kh[:, :, None] * v[:, None, :]
@@ -439,6 +511,8 @@ class Sampler:
             read = torch.einsum('hl,hld->hd', qh[:, :L], Sre)
             if qh.shape[1] > L:
                 read = read + torch.einsum('hl,hld->hd', qh[:, L:], Sim)
+            if a + 'out_gate_a' in p:
+                read = out_gate(p, a, u, read.reshape(-1)).view(H, dh)
             if a + 'out_group.weight' in p:
                 temporal = torch.einsum('hd,hed->he', read, p[a + 'out_group.weight']).reshape(-1) + p[a + 'out_proj.bias']
             else:
