@@ -15,7 +15,10 @@
 # GPUS: the GPUs to try in order, comma-separated: a number names a GeForce RTX card, anything else
 # is a RunPod GPU type id (default 3070,3080,3090). CLOUDS: the clouds to try for each, space-
 # separated (default COMMUNITY, Ajax's rule on the shared account; SECURE is allowed on Roland's).
-# POD_NAME: the pod's name before the GPU (default roland-field).
+# POD_NAME: the pod's name before the GPU (default roland-field). PULL_MINUTES: a rented pod that has not
+# written its "up" line to the diary in this many minutes (its container never started, as pod
+# gk2du24drrd3nn on 2026-10-23: 16 h RUNNING at uptime 0) is given up on like a host without CUDA:
+# removed, its machine remembered, another rented (default 45).
 # Run on the lab:
 #   nohup bash ~/field/pod-self.sh > ~/field/pod-self-launch.log 2>&1 < /dev/null & disown
 set -uo pipefail
@@ -27,7 +30,7 @@ export LEGS=${LEGS:-"real:dense polar:dense polar:grouped"} UPDATES=${UPDATES:-3
 export LAYERS=${LAYERS:-4} HARMONICS=${HARMONICS:-32} BATCH=${BATCH:-16} SHARDS=${SHARDS:-0} RESUME=${RESUME:-0}
 export EXTRA=${EXTRA:-} TAG=${TAG:-}
 export RP_HOME=${RP_HOME:-$HOME} BUSY_PREFIX=${BUSY_PREFIX:-roland-}
-export GPUS=${GPUS:-3070,3080,3090} CLOUDS=${CLOUDS:-COMMUNITY} POD_NAME=${POD_NAME:-roland-field}
+export GPUS=${GPUS:-3070,3080,3090} CLOUDS=${CLOUDS:-COMMUNITY} POD_NAME=${POD_NAME:-roland-field} PULL_MINUTES=${PULL_MINUTES:-45}
 export RUNPOD_KEY=$(grep -i apikey "$RP_HOME/.runpod/config.toml" | sed 's/.*= *//; s/["'"'"']//g' | tr -d ' ')
 export LAB_KEY_B64=$(base64 -w0 ~/.ssh/pod_upload)
 export DRIVER_B64=$(base64 -w0 ~/field/pod-self-driver.sh)
@@ -89,9 +92,11 @@ print('unknown' if 'errors' in r else (p or {}).get('desiredStatus', 'gone'))"
 }
 remove() { HOME=$RP_HOME ~/.local/bin/runpodctl remove pod "$1" 2>&1 | tail -1; }
 resolved_legs() {  # the legs the driver resolved (LEGS-RESOLVED) that have no result yet; sets BATCH to theirs
-  local v m u sd b name out=""
+  local v m u sd lf ln lh b name out=""
   while read -r spec b; do
-    IFS=: read -r v m u sd <<< "$spec"; name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b${TAG:+-$TAG}
+    IFS=: read -r v m u sd lf ln <<< "$spec"
+    lh=$(sed -n 's/.*--harmonics=\([0-9]*\).*/\1/p' <<< "$lf"); lh=${lh:-$HARMONICS}
+    name=$v-$m-${LAYERS}L${lh}H-s$sd-u$u-b$b${ln:+-$ln}${TAG:+-$TAG}
     [ -f ~/field/runs/$name/result.json ] && continue
     stop=$(sed -n 's/.*--stop-at \([0-9]*\).*/\1/p' <<< "$EXTRA")
     [ -n "$stop" ] && [ -f ~/field/runs/$name/stopped-$stop.json ] && continue
@@ -118,6 +123,10 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
           if [ $(( waited % 300 )) -eq 0 ] && [ $waited -gt 600 ]; then
             st=$(status "$PID")
             case "$st" in RUNNING|unknown) ;; *) sleep 30; [ -f POD-DONE ] || [ -f POD-RETRY ] || { dropped=1; break; } ;; esac
+          fi
+          if [ $waited -ge $(( PULL_MINUTES * 60 )) ] && ! grep -q "pod $PID up" pod-self.log 2>/dev/null; then
+            echo "== $(date -u +%H:%M) pod $PID has not started its container in $PULL_MINUTES min"
+            echo "$PID" > POD-RETRY
           fi
         done
         if [ -f POD-RETRY ]; then

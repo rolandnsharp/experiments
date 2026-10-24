@@ -6,7 +6,9 @@
 # stops itself. A watchdog stops the pod after POD_HOURS hours whatever
 # happens. Environment (from the deployment):
 #   LAB_KEY_B64  the lab's pod-upload private key, base64
-#   LEGS         "variant:mixing[:updates[:seed]] ..." (default real:dense polar:dense polar:grouped);
+#   LEGS         "variant:mixing[:updates[:seed[:flags[:name]]]] ..." (default real:dense polar:dense polar:grouped);
+#                flags: more train arguments for that leg only, comma-separated, a value after =
+#                (--select,--harmonics=20,--mlp=600), after EXTRA; name: appended to its run directory
 #                a leg "script:NAME.py" runs that lab script instead: python NAME.py --bytes owt
 #                --out runs/NAME[-TAG] EXTRA, its outputs pushed like a leg's
 #                updates "autoH" trains for H hours: a 30-update benchmark sets the count
@@ -63,7 +65,8 @@ train() {  # train NAME VARIANT MIXING SEED UPDATES BATCH [extra args]
     --layers $LAYERS --harmonics $HARMONICS --batch $b --updates $u --eval-every 500 --checkpoint --shards $SHARDS $EXTRA "$@" \
     > /root/field/runs/$name.log 2>&1
 }
-# a leg is variant:mixing[:updates[:seed]]; its run directory names the model, seed, updates and batch
+# a leg is variant:mixing[:updates[:seed[:flags[:name]]]]; its run directory names the model, seed, updates, batch
+# and the leg's name
 for leg in $LEGS; do
   case "$leg" in
     script:*)
@@ -76,7 +79,8 @@ for leg in $LEGS; do
       say "script $s done (exit $rc): $(tail -1 /root/field/runs/$name.log | cut -c1-160)"
       continue ;;
   esac
-  IFS=: read -r v m u sd <<< "$leg"; u=${u:-$UPDATES}; sd=${sd:-0}; b=$BATCH
+  IFS=: read -r v m u sd lf ln <<< "$leg"; u=${u:-$UPDATES}; sd=${sd:-0}; b=$BATCH
+  lflags=${lf//,/ }; lh=$(sed -n 's/.*--harmonics=\([0-9]*\).*/\1/p' <<< "$lf"); lh=${lh:-$HARMONICS}
   case "$u" in
     auto*)
       hours=${u#auto}
@@ -100,9 +104,9 @@ PY
       say "benchmark: $step s an update at batch $b ($(nvidia-smi --query-gpu=memory.used --format=csv,noheader | head -1) used); $hours h gives $u updates, $(python -c "print(round($u * $b * 2048 / 1e9, 2))") GB of bytes"
       ;;
   esac
-  name=$v-$m-${LAYERS}L${HARMONICS}H-s$sd-u$u-b$b${TAG:+-$TAG}
+  name=$v-$m-${LAYERS}L${lh}H-s$sd-u$u-b$b${ln:+-$ln}${TAG:+-$TAG}
   # the resolved leg, so a launcher that rents another host after a drop can continue it
-  lab "echo \"$v:$m:$u:$sd $b\" >> ~/field/$MARKS/LEGS-RESOLVED"
+  lab "echo \"$v:$m:$u:$sd${lf:+:$lf${ln:+:$ln}} $b\" >> ~/field/$MARKS/LEGS-RESOLVED"
   resume=""
   if [ "$RESUME" = "1" ] && lab "test -f ~/field/runs/$name/resume.pt"; then
     mkdir -p /root/field/runs/$name
@@ -110,7 +114,7 @@ PY
     say "leg $name continues from the lab's copy ($(cat /root/field/runs/$name/checkpoint.json 2>/dev/null | cut -c1-40))"
   fi
   say "leg $name starting"
-  train $name $v $m $sd $u $b $resume
+  train $name $v $m $sd $u $b $lflags $resume
   rc=$?
   # a leg that dies with a checkpoint behind it (a CUDA fault on a community host, most often) continues
   # from the checkpoint, twice; a host that keeps failing is handed back to the launcher with RESUME
@@ -120,7 +124,7 @@ PY
     say "leg $name failed (exit $rc): $(grep -m1 -E "Error|error" /root/field/runs/$name.log | cut -c1-120); retry $tries from its checkpoint ($(cut -c1-40 /root/field/runs/$name/checkpoint.json))"
     push
     mv /root/field/runs/$name.log /root/field/runs/$name.try$tries.log
-    train $name $v $m $sd $u $b --resume
+    train $name $v $m $sd $u $b $lflags --resume
     rc=$?
   done
   if [ $rc -ne 0 ] && [ -f /root/field/runs/$name/resume.pt ]; then
