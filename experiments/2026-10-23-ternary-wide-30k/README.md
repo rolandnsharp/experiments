@@ -118,6 +118,41 @@ ternary adds), training FLOP, wall-clock, cost; the subset curve for both
 30K arms; CORE smoke for T30 and F30 if the endpoint can serve a ternary
 checkpoint (`core_server.py` would need `--ternary`; it does not yet).
 
+## Post-training int8: does ternary beat plain int8 on a CPU? (added 2026-10-24)
+
+Not pre-registered: the expectation (int8 after training would match ternary's
+size and beat its CPU speed) was stated in conversation with Roland before the
+run, not written here first. One seed, one comparison.
+
+Both 30K checkpoints were exported for the C forward (`harness/export_ternary.py`,
+`harness/vidya_ternary.c`). The C forward matches PyTorch's Sampler to 1e-9 bpb
+for float and ternary weights (1024 held-out bytes, max |logit diff| 2.4e-5).
+With int8 inputs the bpb agrees to 2e-4. Its logits drift by up to 0.09 because
+a float32 rounding difference sometimes flips one int8 step, which the
+recurrence then carries forward; the first 8 positions agree to 9e-6. Every
+variant was scored by the C `eval` mode on the same 32 windows of 2048 held-out
+bytes (state reset each window, 65,504 predictions), on the lab (x86, 4 OpenMP
+threads, scalar C):
+
+| variant | bpb | model bytes | 32 windows |
+|---|---|---|---|
+| float 4L/32H (F30) | 1.7342 | 6.77 MB (bf16) | 69.3 s |
+| float, int8 weights per row (post-training) | 1.7342 | ≈3.6 MB | 66.7 s |
+| float, int8 weights and int8 inputs (W8A8) | **1.7346** | **≈3.6 MB** | **16.3 s** |
+| ternary 4L/64H (T30) | 1.7271 | ≈3.9 MB | 255.8 s |
+| ternary, int8 inputs | **1.7273** | ≈3.9 MB | **48.3 s** |
+
+Model bytes: projections at their packed size (int8 1 byte, ternary 2 bits),
+everything else bf16. The .bin files are larger because they keep the rest in
+float32.
+
+Post-training int8 costs the float model nothing measurable (+0.0005). It
+leaves it smaller than the ternary model and 3x faster on this CPU, because the
+ternary model does 3.8x the multiply-adds per byte and int8 multiply-adds are
+as cheap as additions on a CPU with SIMD. Ternary keeps a 0.007 bpb edge. The
+ternary line ends here for CPUs: its advantage (no multiplies) needs hardware
+without fast multipliers (FPGA, GA144-style), which we do not target.
+
 ## Decided vs measured
 
 Decided: the ternary statements on proofs.blah.dev (see ternary-projections).
