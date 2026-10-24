@@ -149,9 +149,16 @@ float32.
 Post-training int8 costs the float model nothing measurable (+0.0005). It
 leaves it smaller than the ternary model and 3x faster on this CPU, because the
 ternary model does 3.8x the multiply-adds per byte and int8 multiply-adds are
-as cheap as additions on a CPU with SIMD. Ternary keeps a 0.007 bpb edge. The
-ternary line ends here for CPUs: its advantage (no multiplies) needs hardware
-without fast multipliers (FPGA, GA144-style), which we do not target.
+as cheap as additions on a CPU with SIMD. Ternary keeps a 0.007 bpb edge.
+
+**Correction (2026-10-24, later the same day).** We first concluded here that
+the ternary line ends for CPUs. That overreached. The C kernel stores each
+ternary weight as an int8 byte, so this measured 3.8x more multiply-adds
+through one kernel on an x86 CPU with fast int8 SIMD, not a ternary kernel.
+It holds for this cache-sized model only. On the uConsole (ARMv8.0, no dot
+product), llama.cpp's ternary kernel decodes a 1.7 B model 2.4x faster than
+int8: see [uconsole-decode-speed](../2026-10-24-uconsole-decode-speed/)
+(EXP-0031).
 
 ## Decided vs measured
 
