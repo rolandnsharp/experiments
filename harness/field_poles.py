@@ -122,7 +122,8 @@ def train(args):
     stream = TextStream(args.bytes, args.shards)
     table = O.wire_table(c.harmonics).to(device)
     p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select,
-                                                                   conv=args.conv, gate=args.gate, phase=args.phase).items()}
+                                                                   conv=args.conv, gate=args.gate, phase=args.phase,
+                                                                   erase=args.erase).items()}
     count = sum(v.numel() for v in p.values())
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
         f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
@@ -136,7 +137,8 @@ def train(args):
         + (' selective decay' if args.select else '')
         + (f' conv {args.conv}' if args.conv else '')
         + (f' out gate {args.gate}' if args.gate else '')
-        + (' selective phase' if args.phase else ''))
+        + (' selective phase' if args.phase else '')
+        + (' erase' if args.erase else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -210,7 +212,7 @@ def train(args):
         result['mlp'] = args.mlp
     if args.select:
         result['select'] = True
-    for k in ('conv', 'gate', 'phase'):
+    for k in ('conv', 'gate', 'phase', 'erase'):
         if getattr(args, k):
             result[k] = getattr(args, k)
     if args.ternary or args.act8 or args.lr_scale != 1:
@@ -263,6 +265,7 @@ def main():
     t.add_argument('--conv', type=int, default=0, help='a causal depthwise convolution of this width added to q, k, v (zero at the start)')
     t.add_argument('--gate', type=int, default=0, help='an output gate of this rank on the read, 2 sigmoid, 1 at the start')
     t.add_argument('--phase', action='store_true', help="the polar pole's rotation made input-dependent (zero at the start)")
+    t.add_argument('--erase', action='store_true', help='before each write, erase the state along the unit key by an input-dependent beta (0.0025 at the start)')
     t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
                    help='torch.compile the chunked recurrence (default none)')
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')

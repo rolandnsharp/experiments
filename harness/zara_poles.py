@@ -66,7 +66,7 @@ Q_INIT = 2.0                      # initial f = Q / (pi tau): a 2 s pole at 0.3 
 
 # ---- parameters ----
 def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False,
-                conv=0, gate=0, phase=False):
+                conv=0, gate=0, phase=False, erase=False):
     """mlp F > 0: a SwiGLU MLP of hidden width F after every block (blocks.i.mlp.*); select: the polar
     pole's decay made input-dependent (temporal.attn.pole_decay_select, zero at the start). Both draw
     from their own generator after everything else, so without them the parameters are as before.
@@ -74,7 +74,9 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
     gate R > 0: the read scaled by 2 sigmoid(u A' B') of rank R before the out projection
     (temporal.attn.out_gate_a, out_gate_b); phase: the polar pole's rotation made input-dependent
     (temporal.attn.pole_omega_select). Each is the identity at the start (the kernel, B and the
-    selection zero) and draws from a third generator after the others."""
+    selection zero) and draws from a third generator after the others. erase: before each write the state
+    loses its component along the unit key, by beta = sigmoid(u w' + b) a head (temporal.attn.erase_gate_weight
+    zero, erase_gate_bias -6, so beta starts at 0.0025); no draws."""
     p = O.initialize(c, seed, torch.float64)
     H, L, dh = c.heads, c.kan, c.head_width
     g = torch.Generator().manual_seed(seed + 7)
@@ -128,6 +130,13 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
                     raise SystemExit('--select needs the polar variant')
                 new[f'blocks.{i}.temporal.attn.pole_decay_select'] = torch.zeros(H * L, D, dtype=torch.float64)
         p.update(O.centre_rotational(new))
+    if erase:
+        if variant != 'polar':
+            raise SystemExit('--erase needs the polar variant')
+        for i in range(c.layers):
+            a = f'blocks.{i}.temporal.attn.'
+            p[a + 'erase_gate_weight'] = torch.zeros(H, c.d, dtype=torch.float64)
+            p[a + 'erase_gate_bias'] = torch.full((H,), -6.0, dtype=torch.float64)
     if conv or gate or phase:
         g3 = torch.Generator().manual_seed(seed + 13)
         D = c.d
@@ -358,6 +367,56 @@ def recurrence_selective(qh, kh, v, la, theta):
     return read.reshape(B, T, H, dh)
 
 
+def recurrence_erase(qh, kh, v, la, theta, beta):
+    """The polar recurrence with an erase before each write: S_t = (I - beta_t k^_t k^_t') c_t S_(t-1) + k_t v_t',
+    k^ the key over the harmonics made unit length, beta [B][T][H] in (0, 1); la [B][T][H][L], theta [H][L] or
+    [B][T][H][L]. The erase is a second write, key k^_t and complex value e_t = -beta_t k^_t' c_t S_(t-1); within a
+    chunk the e_t are the solution of a unit lower-triangular system built from pole powers forward in time only."""
+    B, T, H, L = kh.shape
+    dh = v.shape[-1]
+    C = CHUNK
+    assert T % C == 0
+    n = T // C
+    if theta.dim() != 4:
+        theta = theta.expand(B, T, H, L)
+    Z = torch.complex(la, theta).reshape(B, n, C, H, L).permute(0, 1, 3, 2, 4).cumsum(3)   # [B][n][H][C][L], sum of z over 0..t
+    t = torch.arange(C, device=kh.device)
+    causal = (t[:, None] - t[None, :]) >= 0
+    F_ = torch.exp((Z[:, :, :, :, None, :] - Z[:, :, :, None, :, :]).masked_fill(~causal[..., None], float('-inf')))  # [B][n][H][t][s][L]
+    q = torch.complex(qh[..., :L], qh[..., L:]).conj().reshape(B, n, C, H, L).transpose(2, 3)   # conj(q~), [B][n][H][C][L]
+    k = kh.reshape(B, n, C, H, L).transpose(2, 3).to(F_.dtype)
+    kn = kh / (kh.norm(dim=-1, keepdim=True) + 1e-6)
+    kn = kn.reshape(B, n, C, H, L).transpose(2, 3).to(F_.dtype)
+    vc = v.reshape(B, n, C, H, dh).transpose(2, 3).to(F_.dtype)                                # [B][n][H][C][dh]
+    bt = beta.reshape(B, n, C, H).transpose(2, 3).to(F_.dtype)                                 # [B][n][H][C]
+    strict = (t[:, None] - t[None, :]) > 0
+    Mv = torch.einsum('bnhtl,bnhtsl,bnhsl->bnhts', kn, F_, k) * strict                          # k^_t' F[t,s] k_s, s < t
+    Me = torch.einsum('bnhtl,bnhtsl,bnhsl->bnhts', kn, F_, kn) * strict
+    A1 = torch.einsum('bnhtl,bnhtsl,bnhsl->bnhts', q, F_, k)                                    # conj(q~_t)' F[t,s] k_s, s <= t
+    A2 = torch.einsum('bnhtl,bnhtsl,bnhsl->bnhts', q, F_, kn)
+    eye = torch.eye(C, dtype=F_.dtype, device=kh.device)
+    S = torch.zeros(B, H, L, dh, dtype=F_.dtype, device=kh.device)
+    reads = []
+    for i in range(n):
+        Zi = Z[:, i]                                                       # [B][H][C][L]
+        start = torch.exp(Zi)                                              # c_0..c_t applied to the chunk's start state
+        carry_e = torch.einsum('bhtl,bhtl,bhld->bhtd', kn[:, i], start, S)
+        rhs = -bt[:, i, :, :, None] * (Mv[:, i] @ vc[:, i] + carry_e)
+        e = torch.linalg.solve_triangular(eye + bt[:, i, :, :, None] * Me[:, i], rhs, upper=False, unitriangular=True)
+        read = A1[:, i] @ vc[:, i] + A2[:, i] @ e + torch.einsum('bhtl,bhtl,bhld->bhtd', q[:, i], start, S)
+        reads.append(read.real)
+        end = torch.exp(Zi[:, :, -1:, :] - Zi)                             # [B][H][C][L], c_(s+1)..c_(C-1)
+        S = (torch.exp(Zi[:, :, -1, :])[..., None] * S
+             + torch.einsum('bhsl,bhsl,bhsd->bhld', end, k[:, i], vc[:, i])
+             + torch.einsum('bhsl,bhsl,bhsd->bhld', end, kn[:, i], e))
+    return torch.stack(reads, 1).transpose(2, 3).reshape(B, T, H, dh).to(v.dtype)
+
+
+def erase_strength(p, a, u):
+    """beta = sigmoid(u w' + b), one a head: [B][T][H] (or [H] for one position)."""
+    return torch.sigmoid(u @ p[a + 'erase_gate_weight'].T + p[a + 'erase_gate_bias'])
+
+
 def selective_logmag(p, a, u):
     """The input-dependent pole magnitude's log, -(gmin + e^(rho + u Ws')), [B][T][H][L] (or [H][L] for one position)."""
     rho = p[a + 'pole_decay_rho']
@@ -418,7 +477,11 @@ def block(c, p, prefix, z, variant):
     qh = torch.einsum('bthd,hld->bthl', q, p[a + 'q_harmonic_weight'])
     kh = torch.einsum('bthd,hld->bthl', k, p[a + 'k_harmonic_weight']) * p[a + 'spectral_coeffs']
     logr, theta = pole(p, a, variant)
-    if a + 'pole_omega_select' in p:
+    if a + 'erase_gate_weight' in p:
+        la = selective_logmag(p, a, u) if a + 'pole_decay_select' in p else logr.expand(B, T, H, L)
+        th = selective_theta(p, a, u) if a + 'pole_omega_select' in p else theta
+        read = recurrence_erase(qh, kh, v, la, th, erase_strength(p, a, u))
+    elif a + 'pole_omega_select' in p:
         la = selective_logmag(p, a, u) if a + 'pole_decay_select' in p else logr.expand(B, T, H, L)
         read = recurrence_selective(qh, kh, v, la, selective_theta(p, a, u))
     elif a + 'pole_decay_select' in p:
@@ -507,6 +570,13 @@ class Sampler:
             Sre, Sim = self.S[i]
             inj = kh[:, :, None] * v[:, None, :]
             Sre, Sim = cre[:, :, None] * Sre - cim[:, :, None] * Sim + inj, cre[:, :, None] * Sim + cim[:, :, None] * Sre
+            if a + 'erase_gate_weight' in p:
+                # the erase acts on the decayed state before the write: take the write back out, erase, put it back
+                Xre, Xim = Sre - inj, Sim
+                kn = kh / (kh.norm(dim=-1, keepdim=True) + 1e-6)
+                beta = erase_strength(p, a, u)[:, None, None]
+                Sre = Xre - beta * kn[:, :, None] * torch.einsum('hl,hld->hd', kn, Xre)[:, None, :] + inj
+                Sim = Xim - beta * kn[:, :, None] * torch.einsum('hl,hld->hd', kn, Xim)[:, None, :]
             self.S[i] = (Sre, Sim)
             read = torch.einsum('hl,hld->hd', qh[:, :L], Sre)
             if qh.shape[1] > L:
