@@ -1,5 +1,7 @@
 # The polar pole at Diakosmos's size and recipe: against his 1.4194
 
+**Record.** [EXP-0011](https://experiments.blah.dev/EXP-0011) on experiments.blah.dev; the numbers there and here match.
+
 **Date.** 2026-10-23. **Status.** running: predictions 1 and 2 held at 640 updates; the polar arm
 continues to 15,360 on Roland's account when Roland says go.
 

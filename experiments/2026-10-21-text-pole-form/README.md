@@ -1,5 +1,7 @@
 # Pole form on OpenWebText bytes: real decay vs polar complex pole
 
+**Record.** [EXP-0005](https://experiments.blah.dev/EXP-0005) on experiments.blah.dev; the numbers there and here match.
+
 **Date.** 2026-10-21 (seed 0, secure 3090), 2026-10-21/22 (seed 1 and the long
 real arm, community 3090). **Status.** done at 3K updates with two seeds; done at
 30K updates with seed 0 (2026-10-23); the 30K real arm's seed 1 is queued.

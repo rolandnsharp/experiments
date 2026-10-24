@@ -1,5 +1,7 @@
 # Peak learning rate at 4L/32H: is Diakosmos's 0.003 too low, and does the pole gain survive a tuned rate?
 
+**Record.** [EXP-0010](https://experiments.blah.dev/EXP-0010) on experiments.blah.dev; the numbers there and here match.
+
 **Date.** 2026-10-23. **Status.** done (one seed, 3K updates). The paper and prediction were
 written at 08:35 UTC by the ternary-projections session, before any arm of
 the grid below had a result except polar 2x (see "Known before writing").

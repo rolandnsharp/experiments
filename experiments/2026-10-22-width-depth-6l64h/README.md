@@ -1,5 +1,7 @@
 # Model size 4L/32H → 6L/64H, polar dense, 36 h on one GPU
 
+**Record.** [EXP-0009](https://experiments.blah.dev/EXP-0009) on experiments.blah.dev; the numbers there and here match.
+
 **Date.** 2026-10-22. **Status.** done (bpb); CORE pending. This section was written before the benchmark
 finished; the results section is empty until the run ends.
 
