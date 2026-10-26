@@ -2,7 +2,7 @@
 
 **Record.** [EXP-0025](https://experiments.blah.dev/EXP-0025) on experiments.blah.dev; the numbers there and here match. This protocol was committed to git before launch while the site was unreachable; the site record was created from it and pre-registered at 10:02–10:04 UTC, and its methodology states which runs had started by then.
 
-**Date.** 2026-10-24. **Status.** pre-registered; running.
+**Date.** 2026-10-24. **Status.** concluded 2026-10-26: supported (gain just above the predicted range, at 2.2x the step time).
 
 ## Question
 
@@ -62,4 +62,17 @@ As the gated-MLP experiment. A pass earns runs at more updates and larger sizes.
 
 ## Results
 
-(pending)
+| seed | control | input-dependent damping (capped) | gain |
+|---|---|---|---|
+| 0 | 2.0490 | 2.0036 | 0.045 |
+| 1 | 2.0409 | 2.0045 | 0.036 |
+
+Mean gain **0.041**, 1.64 s an update against 0.75 s. The first seed-0 run, before the cap at 4
+(commit 7041d8a), overflowed float32 and went to NaN at update ~390 (recorded as failed; a first
+rental whose container never started is recorded as abandoned).
+
+## Verdict
+
+Prediction 1 missed on the high side by 0.001 (0.041 against 0.01–0.04); no loss on either seed.
+Prediction 2 missed: 2.2x the step time (the per-position decay products in the PyTorch chunked path).
+In the factorial (EXP-0029) its effect averaged over the other changes is -0.010.

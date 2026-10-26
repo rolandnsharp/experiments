@@ -2,7 +2,7 @@
 
 **Record.** [EXP-0027](https://experiments.blah.dev/EXP-0027) on experiments.blah.dev; the numbers there and here match. This protocol was committed to git before launch while the site was unreachable; the site record was created from it and pre-registered at 10:02–10:04 UTC, and its methodology states which runs had started by then.
 
-**Date.** 2026-10-24. **Status.** pre-registered; running.
+**Date.** 2026-10-24. **Status.** concluded 2026-10-26: supported, gain above the predicted range.
 
 ## Question
 
@@ -58,4 +58,16 @@ weights to 1.9e-5; every new weight gets a gradient and is in the Adam group.
 
 ## Results
 
-(pending)
+| seed | control | gate 16 | gain |
+|---|---|---|---|
+| 0 | 2.0490 | 1.9771 | 0.072 |
+| 1 | 2.0409 | 1.9745 | 0.066 |
+
+Mean gain **0.069**. Both seeds ran on one slow community host (2.0–2.2 s an update); the gate adds under
+1% to the multiply-adds, so the step-time prediction is recorded as untested.
+
+## Verdict
+
+Prediction 1 missed on the high side (0.069 against 0.01–0.04), on both seeds. Second-largest single
+change after the MLP; the factorial (EXP-0029) finds the gate and the MLP overlap (interaction +0.019),
+leaving the gate about 0.018 beside the MLP.
