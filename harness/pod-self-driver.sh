@@ -52,6 +52,11 @@ for f in field_poles.py zara_poles.py diakosmos_oracle.py mulaw.py compute_cost.
 done
 FILES=$(lab "bash ~/field/owt-files.sh $SHARDS") || fail "listing the shards failed"
 lab "cd ~/field && tar cf - $FILES" | tar xf - -C /root/field || fail "fetch owt failed"
+# the token directories legs name with --tokens=DIR (prepare_owt_tokens.py's output on the lab)
+for d in $(grep -o -- '--tokens=[^ ,:]*' <<< "$LEGS $EXTRA" | cut -d= -f2 | sort -u); do
+  lab "cd ~/field && tar cf - $d" | tar xf - -C /root/field || fail "fetch $d failed"
+  say "fetched $d ($(du -sh /root/field/$d | cut -f1))"
+done
 say "fetched $(du -sh /root/field/owt | cut -f1) of bytes; $(ls /root/field/owt | wc -l) files; model ${LAYERS}L/${HARMONICS}H batch $BATCH shards $SHARDS resume $RESUME"
 python -c "import scipy" 2>/dev/null || pip install -q scipy
 push() {  # copy the runs (results, logs, checkpoints) to the lab

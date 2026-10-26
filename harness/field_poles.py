@@ -17,7 +17,11 @@ these flags the run is as before, bit for bit. --ternary: the blocks' qkv and ou
 projections ternary in the forward (zara_poles.TERNARY; BitNet b1.58, the optimizer
 keeps the latent float weights). --act8: the
 projections' inputs rounded to int8 per position (zara_poles.ACT8). --lr-scale S:
-the peak learning rate times S.
+the peak learning rate times S. --embed: a learned input table in place of the wire
+table. --tokens DIR: train on the byte-level BPE tokens prepare_owt_tokens.py wrote to
+DIR (implies --embed; windows of 2048 tokens), scored on the same held-out bytes: each
+window's 2048 predicted bytes tokenized alone after a start token, bits over every token /
+bytes (the byte model also sees the byte before them).
 
 The model, the optimizer and the scoring are zara_poles.py's (the audio
 harness, itself Diakosmos's oracle with the recurrence replaced); only the data
@@ -93,6 +97,61 @@ class TextStream:
         return [self.text[(i + 1) * span // (n + 1):(i + 1) * span // (n + 1) + length] for i in range(n)]
 
 
+class TokenStream:
+    """prepare_owt_tokens.py's output: the training shards as one uint16 token stream, and the held-out
+    byte windows tokenized one by one (tokens, offsets, the bytes each window covers)."""
+    def __init__(self, d):
+        m = json.loads((d / 'tokens.json').read_text())
+        self.m = m
+        self.vocab, self.bos, self.shards = m['vocab'], m['bos'], m['shards']
+        self.cat = np.memmap(d / m['train'], dtype=np.uint16, mode='r')
+        h = np.load(d / m['heldout'])
+        self.held_tokens, self.held_offsets, self.held_bytes = h['tokens'], h['offsets'], h['nbytes']
+        self.lengths = h['vocab_offsets'][1:] - h['vocab_offsets'][:-1]
+        self.vocab_bytes = [bytes(h['vocab_bytes'][a:b]) for a, b in zip(h['vocab_offsets'][:-1], h['vocab_offsets'][1:])]
+        self.prompt_tokens = [h[f'prompt{i}'] for i in range(3)]
+        self.heldout = np.arange(self.held_bytes.size)   # window indices: score_tokens takes these
+        self.scored = int(self.held_bytes.sum())
+
+    def windows(self, first, count):
+        T = O.FULL_CONTEXT
+        if (first + count) * T + 1 > self.cat.size:
+            raise SystemExit(f'the training stream ({self.cat.size} tokens) ends before window {first + count}')
+        return np.stack([np.asarray(self.cat[k * T:k * T + T + 1]) for k in range(first, first + count)])
+
+    def bytes_of(self, tokens):
+        return int(self.lengths[np.asarray(tokens)].sum())
+
+    def prompts(self):
+        return self.prompt_tokens
+
+    def show(self, tokens):
+        return show(b''.join(self.vocab_bytes[int(t)] for t in tokens))
+
+
+def score_tokens(c, p, table, stream, which, variant, device, batch=8):
+    """Bits per byte over held-out windows `which`: each window's tokens after the start token, every token
+    scored, divided by the bytes the windows cover."""
+    bits, nbytes = 0.0, 0
+    with torch.no_grad():
+        for i in range(0, which.size, batch):
+            rows = [stream.held_tokens[stream.held_offsets[j]:stream.held_offsets[j + 1]].astype(np.int64) for j in which[i:i + batch]]
+            # padded at the end to whole chunks of the recurrence (masked; the forward is causal)
+            n = -(-max(r.size for r in rows) // zara_poles.CHUNK) * zara_poles.CHUNK
+            x = np.zeros((len(rows), n + 1), dtype=np.int64)
+            mask = np.zeros((len(rows), n), dtype=bool)
+            for k, r in enumerate(rows):
+                x[k, 0] = stream.bos
+                x[k, 1:r.size + 1] = r
+                mask[k, :r.size] = True
+            x, mask = torch.from_numpy(x).to(device), torch.from_numpy(mask).to(device)
+            logits = zara_poles.forward(c, p, table, x[:, :-1], variant)
+            l = torch.nn.functional.cross_entropy(logits.reshape(-1, logits.shape[-1]), x[:, 1:].reshape(-1), reduction='none')
+            bits += (l * mask.reshape(-1)).sum().item() / math.log(2)
+            nbytes += int(stream.held_bytes[which[i:i + batch]].sum())
+    return bits / nbytes
+
+
 def show(b):
     return bytes(b).decode('utf-8', errors='replace')
 
@@ -119,11 +178,18 @@ def train(args):
         print(s, flush=True)
         log.write(s + '\n')
         log.flush()
-    stream = TextStream(args.bytes, args.shards)
+    stream = TokenStream(args.tokens) if args.tokens else TextStream(args.bytes, args.shards)
+    vocab = stream.vocab if args.tokens else 256
+    args.embed = args.embed or bool(args.tokens)
     table = O.wire_table(c.harmonics).to(device)
     p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select,
                                                                    conv=args.conv, gate=args.gate, phase=args.phase,
-                                                                   erase=args.erase).items()}
+                                                                   erase=args.erase, embed=args.embed, vocab=vocab).items()}
+
+    def held(windows):
+        if args.tokens:
+            return score_tokens(c, p, table, stream, windows, args.variant, device)
+        return score(c, p, table, windows, args.variant, device)
     count = sum(v.numel() for v in p.values())
     say(f'variant {args.variant} mixing {args.mixing} layers {c.layers} width {c.d} params {count} device {device} batch {args.batch} updates {args.updates} '
         f'shards {stream.shards} train bytes {stream.cat.size} held-out windows {stream.heldout.shape[0]} scored bytes {stream.scored}'
@@ -138,7 +204,9 @@ def train(args):
         + (f' conv {args.conv}' if args.conv else '')
         + (f' out gate {args.gate}' if args.gate else '')
         + (' selective phase' if args.phase else '')
-        + (' erase' if args.erase else ''))
+        + (' erase' if args.erase else '')
+        + (' learned embedding' if args.embed else '')
+        + (f' tokens {args.tokens} (vocab {vocab}, train stream in tokens)' if args.tokens else ''))
     upd = O.Update(p, args.updates, ns=O.newton_schulz_half if args.half else None)
     per = args.batch * args.accumulate
     eval_windows = stream.heldout[:args.eval_windows]
@@ -179,7 +247,7 @@ def train(args):
         if step % 20 == 0 or step == args.updates - 1:
             say(f'step {step:6d}  loss {l.item() / math.log(2):.4f} bpb  gradnorm {norm:.3f}  {time.time() - t0:.0f} s')
         if (step + 1) % args.eval_every == 0 or step == args.updates - 1:
-            bpb = score(c, p, table, eval_windows, args.variant, device)
+            bpb = held(eval_windows)
             curve.append({'step': step + 1, 'bpb': bpb, 'seconds': time.time() - t0})
             say(f'step {step:6d}  held-out ({eval_windows.shape[0]} windows) {bpb:.4f} bpb')
             # the checkpoint so far, so a run that dies leaves its latest state
@@ -193,7 +261,7 @@ def train(args):
             if (step + 1) % args.eval_every != 0 and step != args.updates - 1:
                 raise SystemExit('--stop-at must fall on a held-out check (a multiple of --eval-every)')
             final = stream.heldout if args.final_windows == 0 else stream.heldout[:args.final_windows]
-            full = score(c, p, table, final, args.variant, device)
+            full = held(final)
             say(f'stopped after update {step + 1} of {args.updates}: held-out ({final.shape[0]} of {stream.heldout.shape[0]} windows) {full:.4f} bpb')
             (out / f'stopped-{step + 1}.json').write_text(json.dumps({'step': step + 1, 'updates': args.updates, 'heldoutBpb': full,
                                                                       'windows': int(final.shape[0]), 'seconds': time.time() - t0,
@@ -201,7 +269,7 @@ def train(args):
             return
     torch.save({k: v.cpu() for k, v in p.items()}, out / 'params.pt')
     final = stream.heldout if args.final_windows == 0 else stream.heldout[:args.final_windows]
-    full = score(c, p, table, final, args.variant, device)
+    full = held(final)
     say(f'final held-out ({final.shape[0]} of {stream.heldout.shape[0]} windows, {stream.scored} scored bytes in all) {full:.4f} bpb')
     result = {'variant': args.variant, 'mixing': args.mixing, 'layers': c.layers, 'harmonics': c.harmonics, 'params': count,
               'updates': args.updates, 'batch': args.batch, 'accumulate': args.accumulate, 'half': args.half,
@@ -215,6 +283,15 @@ def train(args):
     for k in ('conv', 'gate', 'phase', 'erase'):
         if getattr(args, k):
             result[k] = getattr(args, k)
+    if args.embed:
+        result['embed'] = True
+    if args.tokens:
+        seen = np.asarray(stream.cat[:args.updates * per * O.FULL_CONTEXT])
+        result['trainTokensSeen'] = int(seen.size)
+        result['trainBytesSeen'] = stream.bytes_of(seen)
+        result['trainBytes'] = int(stream.m['trainBytes'])
+        result['shards'] = stream.shards
+        result['tokens'] = {'dir': args.tokens.name, 'vocab': vocab, 'heldoutBytesPerToken': stream.scored / stream.held_tokens.size}
     if args.ternary or args.act8 or args.lr_scale != 1:
         # what a scorer needs to rebuild the forward (core_server.py reads 'ternary' and 'act8')
         result['ternary'], result['act8'], result['lrScale'] = args.ternary, args.act8, args.lr_scale
@@ -228,8 +305,9 @@ def train(args):
             for i, prompt in enumerate(stream.prompts()):
                 s = Sampler(c, p, table, args.variant)
                 g = s.run(prompt, 256, temperature, gen)
-                rows.append({'prompt': show(prompt), 'generated': show(g)})
-                f.write(f'=== T={temperature} prompt {i}\n{show(prompt)}\n--- continuation\n{show(g)}\n\n')
+                text = stream.show if args.tokens else show
+                rows.append({'prompt': text(prompt), 'generated': text(g)})
+                f.write(f'=== T={temperature} prompt {i}\n{text(prompt)}\n--- continuation\n{text(g)}\n\n')
             result['samples'][str(temperature)] = rows
     say('sample (T=1.0): ' + result['samples']['1.0'][0]['generated'][:200].replace('\n', ' '))
     (out / 'result.json').write_text(json.dumps(result, indent=1) + '\n')
@@ -266,6 +344,8 @@ def main():
     t.add_argument('--gate', type=int, default=0, help='an output gate of this rank on the read, 2 sigmoid, 1 at the start')
     t.add_argument('--phase', action='store_true', help="the polar pole's rotation made input-dependent (zero at the start)")
     t.add_argument('--erase', action='store_true', help='before each write, erase the state along the unit key by an input-dependent beta (0.0025 at the start)')
+    t.add_argument('--embed', action='store_true', help='a learned input table (random phases, Adam) in place of the wire table')
+    t.add_argument('--tokens', type=Path, default=None, help="train on prepare_owt_tokens.py's BPE tokens in this directory (implies --embed)")
     t.add_argument('--compile', default='none', choices=['none', 'recurrence'],
                    help='torch.compile the chunked recurrence (default none)')
     t.add_argument('--stop-at', type=int, default=0, help='stop after this update (a held-out check), scoring the full held-out set')

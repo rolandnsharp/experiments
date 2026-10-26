@@ -66,7 +66,7 @@ Q_INIT = 2.0                      # initial f = Q / (pi tau): a 2 s pole at 0.3 
 
 # ---- parameters ----
 def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False,
-                conv=0, gate=0, phase=False, erase=False):
+                conv=0, gate=0, phase=False, erase=False, embed=False, vocab=256):
     """mlp F > 0: a SwiGLU MLP of hidden width F after every block (blocks.i.mlp.*); select: the polar
     pole's decay made input-dependent (temporal.attn.pole_decay_select, zero at the start). Both draw
     from their own generator after everything else, so without them the parameters are as before.
@@ -76,7 +76,10 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
     (temporal.attn.pole_omega_select). Each is the identity at the start (the kernel, B and the
     selection zero) and draws from a third generator after the others. erase: before each write the state
     loses its component along the unit key, by beta = sigmoid(u w' + b) a head (temporal.attn.erase_gate_weight
-    zero, erase_gate_bias -6, so beta starts at 0.0025); no draws."""
+    zero, erase_gate_bias -6, so beta starts at 0.0025); no draws. embed: the wire table replaced by a
+    learned table of vocab rows (embed.harmonic_phasors, trained by Adam), each row the wire table's form at
+    random phases and renormalized a group in the forward; vocab > 256 (tokens) needs it and gives the head
+    vocab rows. Both draw from a fourth generator after the others."""
     p = O.initialize(c, seed, torch.float64)
     H, L, dh = c.heads, c.kan, c.head_width
     g = torch.Generator().manual_seed(seed + 7)
@@ -151,7 +154,26 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
                 if variant != 'polar':
                     raise SystemExit('--phase needs the polar variant')
                 p[a + 'pole_omega_select'] = torch.zeros(H * L, D, dtype=torch.float64)
+    if vocab != 256 and not embed:
+        raise SystemExit('a vocabulary other than bytes needs the learned embedding')
+    if embed:
+        g4 = torch.Generator().manual_seed(seed + 17)
+        phases = torch.rand((vocab, O.GROUPS, c.harmonics), generator=g4, dtype=torch.float64) * 2 * math.pi
+        z = torch.stack([torch.cos(phases), torch.sin(phases)], dim=-1) / math.sqrt(c.harmonics)
+        p['embed.harmonic_phasors'] = z.reshape(vocab, c.d)
+        if vocab != 256:
+            bound = 1 / math.sqrt(c.features)
+            head = {'head.weight': (torch.rand((vocab, c.features), generator=g4, dtype=torch.float64) * 2 - 1) * bound}
+            p.update(O.centre_rotational(head))
     return {k: v.to(dtype) for k, v in p.items()}
+
+
+def embed(c, p, table, x):
+    """The block input for symbols x: the wire table's rows, or the learned table's renormalized a group."""
+    if 'embed.harmonic_phasors' not in p:
+        return table[x]
+    e = p['embed.harmonic_phasors'][x]
+    return O.normalize(e.view(*e.shape[:-1], O.GROUPS, c.width)).view(e.shape)
 
 
 def pole(p, a, variant):
@@ -512,7 +534,7 @@ def block(c, p, prefix, z, variant):
 
 
 def forward(c, p, table, x, variant, checkpoint=False):
-    z = table[x]
+    z = embed(c, p, table, x)
     for i in range(c.layers):
         if checkpoint and torch.is_grad_enabled():
             z = torch.utils.checkpoint.checkpoint(block, c, p, f'blocks.{i}.', z, variant, use_reentrant=False)
@@ -530,7 +552,7 @@ def forward(c, p, table, x, variant, checkpoint=False):
 
 def loss_of(c, p, table, w, variant, checkpoint=False):
     logits = forward(c, p, table, w[:, :-1], variant, checkpoint)
-    return F.cross_entropy(logits.reshape(-1, 256), w[:, 1:].reshape(-1))
+    return F.cross_entropy(logits.reshape(-1, logits.shape[-1]), w[:, 1:].reshape(-1))
 
 
 # ---- generation: one position at a time, the recurrence as written ----
@@ -550,7 +572,7 @@ class Sampler:
     def logits(self, byte):
         c, p = self.c, self.p
         H, L, dh, W = c.heads, c.kan, c.head_width, c.width
-        z = self.table[byte]
+        z = embed(c, p, self.table, byte)
         for i in range(c.layers):
             prefix, a = f'blocks.{i}.', f'blocks.{i}.temporal.attn.'
             u = O.layer_norm(z, p[prefix + 'temporal.ln.weight'], p[prefix + 'temporal.ln.bias'])
@@ -619,7 +641,7 @@ class Sampler:
             nxt = int(torch.multinomial(probs, 1, generator=generator).item())
             out.append(nxt)
             logits = self.logits(nxt)
-        return np.array(out, dtype=np.uint8)
+        return np.array(out, dtype=np.uint8 if logits.numel() == 256 else np.int64)
 
 
 # ---- measurement ----
@@ -686,7 +708,7 @@ def score(c, p, table, windows, variant, device, batch=8):
         for i in range(0, windows.shape[0], batch):
             w = torch.from_numpy(windows[i:i + batch].astype(np.int64)).to(device)
             logits = forward(c, p, table, w[:, :-1], variant)
-            l = F.cross_entropy(logits.reshape(-1, 256), w[:, 1:].reshape(-1), reduction='sum')
+            l = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), w[:, 1:].reshape(-1), reduction='sum')
             tot += l.item()
             n += w[:, 1:].numel()
     return tot / n / math.log(2)
