@@ -147,7 +147,7 @@ the diakosmos-size-pole experiment's question.
 The polar pole is the kernel's recurrence in Alpha (Vidya.Pole, Vidya.Cell,
 PoleRecurrenceSM86). This is the headline experiment: the one variable that
 separates Vidya from Diakosmos, at equal parameters and equal multiply-adds
-per byte, everything else his. The 30K real arm has two seeds (1.8841,
-1.8817); the polar arm one (1.8469). The gain
+per byte, everything else his. The 30K arms have two seeds each (real
+1.8841, 1.8817; polar 1.8469, 1.8442). The gain
 is small; the case for the architecture rests more on its compute profile
 than on the pole.

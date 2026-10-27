@@ -52,7 +52,14 @@ replicate pairs (effect se 0.0017):
 Fitted best of all 32: mlp+select+conv+gate 1.9092; then mlp+select+gate 1.9124 (measured), mlp+select+conv
 1.9142 (measured), mlp+select 1.9144, mlp+conv+gate 1.9161 (measured). Control fitted 2.0247, measured 2.0450.
 
-Readings (the verdict waits for the confirmation runs): the MLP dominates; the gate helps but overlaps with
+Readings: the MLP dominates; the gate helps but overlaps with
 the MLP (the largest interaction, +0.019, beyond the predicted 0.015); the input-dependent rotation *hurts*
-once combined (+0.015); damping and convolution add about 0.01 each. Confirmation of mlp+select+conv+gate on
-seeds 1 and 2 launched 2026-10-26 (MARKS fxbest-1, fxbest-2).
+once combined (+0.015); damping and convolution add about 0.01 each. Confirmation of mlp+select+conv+gate on fresh seeds: **1.9088** (seed 1)
+and **1.9073** (seed 2, rerun after a host fault), mean 1.9081 against the control's 2.0450, a gain of 0.137.
+
+## Verdict (concluded 2026-10-27)
+
+Prediction 1 missed high (0.137 against 0.03–0.08); prediction 2 refuted (MLP x gate +0.019 > 0.015);
+prediction 3 met (select x phase +0.004); prediction 4 met (four helpful main effects). The changes
+overlap rather than add, and the result is specific to small models: the same block (without damping)
+gave no gain at 100 M (EXP-0034).
