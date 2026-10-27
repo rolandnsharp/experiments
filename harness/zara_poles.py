@@ -54,6 +54,8 @@ TERNARY = False
 # the blocks' qkv and out projection inputs rounded to int8 per position (BitNet b1.58's
 # absmax activations) when set; field_poles.py --act8 sets it
 ACT8 = False
+POLE_SCALE = 1.0       # the polar pole's rho and omega are stored divided by this and multiplied back where used,
+                       # so Adam (whose step does not depend on the gradient's scale) moves them this many times faster
 GMIN = 0.0005          # Ambrosio's decay floor: |c| <= e^-gmin
 RADIUS = 0.9995        # Manfred's projection radius
 RATE = 16000
@@ -66,7 +68,7 @@ Q_INIT = 2.0                      # initial f = Q / (pi tau): a 2 s pole at 0.3 
 
 # ---- parameters ----
 def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, select=False,
-                conv=0, gate=0, phase=False, erase=False, embed=False, vocab=256):
+                conv=0, gate=0, phase=False, erase=False, embed=False, vocab=256, pole_init='diakosmos'):
     """mlp F > 0: a SwiGLU MLP of hidden width F after every block (blocks.i.mlp.*); select: the polar
     pole's decay made input-dependent (temporal.attn.pole_decay_select, zero at the start). Both draw
     from their own generator after everything else, so without them the parameters are as before.
@@ -106,6 +108,17 @@ def make_params(c, variant, seed=0, dtype=torch.float32, mixing='dense', mlp=0, 
         if variant == 'polar':
             p[a + 'pole_decay_rho'] = torch.log(-torch.log(gamma) - GMIN)
             p[a + 'pole_omega'] = omega
+            if pole_init == 'wide':
+                # decay lengths log-spaced from 1 to 1500 bytes over the layer's poles, in a fixed shuffled order
+                # (trained poles end mostly at 1-4 bytes with a few of hundreds; Diakosmos's start is 8-21 bytes)
+                tau = torch.logspace(0, math.log10(1500), H * L, dtype=torch.float64)
+                order = torch.randperm(H * L, generator=torch.Generator().manual_seed(17 + i))
+                p[a + 'pole_decay_rho'] = torch.log(1 / tau[order] - GMIN).view(H, L)
+            elif pole_init != 'diakosmos':
+                raise SystemExit(f'unknown pole init {pole_init}')
+            if POLE_SCALE != 1:
+                p[a + 'pole_decay_rho'] = p[a + 'pole_decay_rho'] / POLE_SCALE
+                p[a + 'pole_omega'] = p[a + 'pole_omega'] / POLE_SCALE
         elif variant == 'ct':
             # decay times log-spaced over the bank, harmonic-major so every head spans all timescales
             grid = torch.logspace(math.log10(TAU_LOW), math.log10(TAU_HIGH), H * L, dtype=torch.float64)
@@ -176,13 +189,22 @@ def embed(c, p, table, x):
     return O.normalize(e.view(*e.shape[:-1], O.GROUPS, c.width)).view(e.shape)
 
 
+def polar_params(p, a):
+    """The polar pole's (rho, omega), [H][L], undoing the storage scale POLE_SCALE."""
+    rho, omega = p[a + 'pole_decay_rho'], p[a + 'pole_omega']
+    if POLE_SCALE != 1:
+        return rho * POLE_SCALE, omega * POLE_SCALE
+    return rho, omega
+
+
 def pole(p, a, variant):
     """(log r, theta) per [H][L]."""
     if variant == 'real':
         logit = p[a + '_gate_logit'][:, None] + p[a + '_harmonic_decay_offset'][None, :]
         return F.logsigmoid(logit), torch.zeros_like(logit)
     if variant == 'polar':
-        return -(GMIN + torch.exp(p[a + 'pole_decay_rho'])), p[a + 'pole_omega']
+        rho, omega = polar_params(p, a)
+        return -(GMIN + torch.exp(rho)), omega
     if variant == 'ct':
         logr = -(1.0 / TAU_MAX + torch.exp(-p[a + 'pole_decay_log_tau'])) / RATE
         return logr, 2 * math.pi / RATE * torch.exp(p[a + 'pole_freq_log_hz'])
@@ -445,14 +467,14 @@ SELECT_CAP = 4.0       # rho + u Ws' is capped here: |c| >= e^-(gmin + e^4) ~ e^
 
 def selective_logmag(p, a, u):
     """The input-dependent pole magnitude's log, -(gmin + e^min(rho + u Ws', cap)), [B][T][H][L] (or [H][L] for one position)."""
-    rho = p[a + 'pole_decay_rho']
+    rho = polar_params(p, a)[0]
     s = (u @ p[a + 'pole_decay_select'].T).view(*u.shape[:-1], *rho.shape)
     return -(GMIN + torch.exp((rho + s).clamp(max=SELECT_CAP)))
 
 
 def selective_theta(p, a, u):
     """The input-dependent pole rotation, omega + u Wo', [B][T][H][L] (or [H][L] for one position)."""
-    omega = p[a + 'pole_omega']
+    omega = polar_params(p, a)[1]
     return omega + (u @ p[a + 'pole_omega_select'].T).view(*u.shape[:-1], *omega.shape)
 
 

@@ -62,6 +62,7 @@ class Scorer:
         # the forward the run was trained with: ternary projections when it said so
         zara_poles.TERNARY = ternary or meta.get('ternary', False)
         zara_poles.ACT8 = meta.get('act8', False)
+        zara_poles.POLE_SCALE = meta.get('poleScale', 1.0)
         self.c = O.Config(harmonics=meta['harmonics'], layers=meta['layers'], heads=7, kan=8, dt=0.3)
         self.variant = meta['variant']
         self.device = torch.device(device)

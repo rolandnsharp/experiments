@@ -161,6 +161,7 @@ def train(args):
     zara_poles.HALF = args.half
     zara_poles.TERNARY = args.ternary
     zara_poles.ACT8 = args.act8
+    zara_poles.POLE_SCALE = args.pole_lr_scale
     O.PEAK_LR = O.PEAK_LR * args.lr_scale
     if args.compile == 'recurrence':
         # torch.compile on the chunked recurrence: its Python loop of small operations leaves the GPU
@@ -184,7 +185,7 @@ def train(args):
     table = O.wire_table(c.harmonics).to(device)
     p = {k: v.to(device) for k, v in make_params(c, args.variant, args.seed, mixing=args.mixing, mlp=args.mlp, select=args.select,
                                                                    conv=args.conv, gate=args.gate, phase=args.phase,
-                                                                   erase=args.erase, embed=args.embed, vocab=vocab).items()}
+                                                                   erase=args.erase, embed=args.embed, vocab=vocab, pole_init=args.pole_init).items()}
 
     def held(windows):
         if args.tokens:
@@ -198,6 +199,8 @@ def train(args):
         + (' ternary qkv/out projections' if args.ternary else '')
         + (' int8 projection inputs' if args.act8 else '')
         + (f' peak lr {O.PEAK_LR:g}' if args.lr_scale != 1 else '')
+        + (f' pole lr x{args.pole_lr_scale:g}' if args.pole_lr_scale != 1 else '')
+        + (f' pole init {args.pole_init}' if args.pole_init != 'diakosmos' else '')
         + (f' compile {args.compile}' if args.compile != 'none' else '')
         + (f' mlp {args.mlp}' if args.mlp else '')
         + (' selective decay' if args.select else '')
@@ -295,6 +298,9 @@ def train(args):
     if args.ternary or args.act8 or args.lr_scale != 1:
         # what a scorer needs to rebuild the forward (core_server.py reads 'ternary' and 'act8')
         result['ternary'], result['act8'], result['lrScale'] = args.ternary, args.act8, args.lr_scale
+    if args.pole_lr_scale != 1 or args.pole_init != 'diakosmos':
+        # the stored poles are divided by poleScale (core_server.py reads it)
+        result['poleScale'], result['poleInit'] = args.pole_lr_scale, args.pole_init
     logr, theta = pole(p, 'blocks.0.temporal.attn.', args.variant)
     result['block0Poles'] = {'periodBytes': (2 * math.pi / theta.abs().clamp(min=1e-9)).flatten().tolist(),
                              'decayBytes': (-1 / logr).flatten().tolist()}
@@ -338,6 +344,8 @@ def main():
     t.add_argument('--ternary', action='store_true', help="the blocks' qkv and out projections ternary in the forward (BitNet b1.58: absmean scale, straight-through gradient)")
     t.add_argument('--act8', action='store_true', help="the blocks' qkv and out projection inputs rounded to int8 per position in the forward (BitNet b1.58 absmax, straight-through gradient)")
     t.add_argument('--lr-scale', type=float, default=1.0, help="the optimizer's peak learning rate times this (default 1)")
+    t.add_argument('--pole-lr-scale', type=float, default=1.0, help="the polar pole's rho and omega move this many times faster: stored divided by it (default 1)")
+    t.add_argument('--pole-init', default='diakosmos', choices=['diakosmos', 'wide'], help="the polar pole's initial decays: Diakosmos's (default) or log-spaced 1-1500 bytes")
     t.add_argument('--mlp', type=int, default=0, help='a SwiGLU MLP of this hidden width after every block (default 0: none)')
     t.add_argument('--select', action='store_true', help="the polar pole's decay made input-dependent (zero at the start)")
     t.add_argument('--conv', type=int, default=0, help='a causal depthwise convolution of this width added to q, k, v (zero at the start)')
