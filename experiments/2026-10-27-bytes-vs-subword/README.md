@@ -71,9 +71,6 @@ On the lab CPU (`harness/check_tokens.py` against the live `~/field`): flags off
 gradients bit-identical on the factorial's best block, and again at fxbest's exact size (95 tensors);
 `--embed` adds only the table; a 2,048 vocabulary's Sampler equals the chunked forward (float64,
 3.9e-15); `score_tokens` equals a hand sum by the Sampler. 2-update CPU smokes of B, C2k, C8k ran.
-The tokenizer script's coverage check caught one bug before any run: the start token was named `<s>`,
-which the tokenizer also matched inside the text (two literal `<s>` in shard 0 became zero-byte
-tokens). Renamed to U+2402.
 
 ## Results
 

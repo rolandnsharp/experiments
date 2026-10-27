@@ -89,10 +89,9 @@ real 30K arm's partial curve, same subset, seed 0: at 13,500 updates real
 1.9392 vs polar 1.9021, gap 0.037. (The real arm's `checkpoint.json` holds its
 curve to 13,500; `params.pt` at that step is on the lab.)
 
-At a full pass (30,000 updates, 983 MB, one pass over shards 0–1), seed 0,
-the real arm rerun from the start on a community 3090 (pod drvotwvc0wxn87,
-5.4 h, `real-dense-4L32H-s0-u30000-b16/`), held-out over all 18.5 M scored
-bytes:
+At a full pass (30,000 updates, 983 MB, one pass over shards 0–1), seed 0
+(real: 5.4 h on a community 3090, `real-dense-4L32H-s0-u30000-b16/`), held-out
+over all 18.5 M scored bytes:
 
 | updates | real | polar | gap |
 |---|---|---|---|

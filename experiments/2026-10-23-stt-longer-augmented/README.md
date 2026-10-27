@@ -1,26 +1,9 @@
 # Speech recognition, round 4: train longer, with augmentation
 
-**Date.** 2026-10-23. **Status.** concluded 2026-10-24: **prediction failed**, round 4 is slightly worse than round 3 on clean speech. Ran 2026-10-23 08:25 UTC to 2026-10-24 01:43 UTC (third start; pod `roland-stt4-a40-1`, A40, $0.59/h).
+**Date.** 2026-10-23. **Status.** concluded 2026-10-24: **prediction failed**, round 4 is slightly worse than round 3 on clean speech. Ran 2026-10-23 08:25 UTC to 2026-10-24 01:43 UTC (A40, $0.59/h).
 Prediction written before any run.
 
-Run note: the first start ran at 2.05 s/update because the augmentation (numpy, one CPU core) starved
-the GPU; it was stopped after ~150 updates and restarted from the same checkpoint with batches
-prepared by 6 worker processes (`--workers 6`): 1.07 s/update, about 18 h for 60,000 updates.
-
-Second failure: that run was killed by the kernel (exit 137, out of memory) at update ~900. Cause:
-`Pool.imap` pulls jobs eagerly from an infinite generator, so the workers kept preparing 15 MB
-batches faster than the GPU consumed them until the pod's 48 GB was full. Fix: a semaphore bounds
-the batches prepared ahead to 2 x workers (verified on the lab: workers wait, memory flat). The
-driver treated the death as the end of the run and stopped the pod; the run was relaunched from
-the same round-3 checkpoint on a new A40 (`x3qd3mmimou0wf`) at 08:25 UTC. Cost of both false
-starts: about $0.70 and 1.5 h.
-
-Third defect, found by a release self-test on the lab: with `--workers`, the trainer never exits
-after training (the pool's feeder thread blocks on the semaphore), so the driver would not see the
-run end until the 36 h self-stop (~16 h idle, ~$10). Fixed in the harness (the feeder is unblocked
-and the pool terminated after the last update; verified: exits 8 s after "done"). The running round
-4 loaded the old code, so a watcher on the pod (`exit-watch.sh`) ends the trainer two minutes after
-its log says "done"; the lab driver then fetches and stops the pod as usual.
+Two false starts (data preparation too slow, then out of memory; ≈ $0.70) preceded the run reported here; augmentation batches are prepared by 6 worker processes (`--workers 6`), 1.07 s/update.
 
 ## Question
 

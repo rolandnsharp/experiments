@@ -67,9 +67,8 @@ As the gated-MLP experiment. A pass earns runs at more updates and larger sizes.
 | 0 | 2.0490 | 2.0036 | 0.045 |
 | 1 | 2.0409 | 2.0045 | 0.036 |
 
-Mean gain **0.041**, 1.64 s an update against 0.75 s. The first seed-0 run, before the cap at 4
-(commit 7041d8a), overflowed float32 and went to NaN at update ~390 (recorded as failed; a first
-rental whose container never started is recorded as abandoned).
+Mean gain **0.041**, 1.64 s an update against 0.75 s. The damping exponent is capped at 4
+(commit 7041d8a): uncapped, it overflowed float32 (one failed run, recorded).
 
 ## Verdict
 

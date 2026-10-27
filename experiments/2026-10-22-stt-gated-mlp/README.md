@@ -46,15 +46,13 @@ batches of 240 s of audio, Diakosmos's optimizer, seed 0.
 ## Code
 
 `harness/stt/zara_stt.py` (`--mlp`, `mlp_step`), `pod-run-all.sh`, `pod-stt2.sh`,
-`retry2.sh`, `pod-probe.sh`. The corpus is memory-mapped (`np.memmap`): the first attempt
-loaded 53 GB into an 8 GB pod and both runs were killed at load.
+`retry2.sh`, `pod-probe.sh`. The corpus is memory-mapped (`np.memmap`).
 
 ## Hardware and cost
 
 RunPod secure-cloud A40 48 GB (Roland's account, $0.59/h; no community 3090/4090 was
 available that day): plain arm 2 h 32 min, MLP arm 56 min, data download and packing 1 h.
-With the failed first attempt (out of memory at load) and a broken 3090 host (CUDA would not
-initialise; abandoned automatically), ≈ $3.50 in all.
+≈ $3.50 in all, including two failed attempts.
 
 ## Data
 

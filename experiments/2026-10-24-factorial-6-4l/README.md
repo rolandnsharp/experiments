@@ -4,7 +4,7 @@
 2026-10-24 10:25 UTC, before the launch); the protocol, predictions and analysis plan are there,
 and the numbers there and here match.
 
-**Status.** all 16 points done (2026-10-24); confirmation of the fitted best running (2026-10-26). 11 legs ran on 3 community 3090/3080 pods (MARKS fx5-1..fx5-3, fx5-1 relaunched as fx5-1b on the capped code), launched ~10:40 UTC;
+**Status.** all 16 points done (2026-10-24); confirmation of the fitted best running (2026-10-26). 11 legs ran on 3 community 3090/3080 pods (MARKS fx5-1..fx5-3), launched ~10:40 UTC;
 the legs and their pods are in `design.txt`.
 
 **Deviation (10:39 UTC, before any run).** Planned as a 2^(6-1) with the delta-rule erase as a sixth

@@ -63,10 +63,7 @@ lab: `~/field/runs/polar-dense-6L64H-s0-u69154-b16`; the diary pushes a
 256-window held-out check every 30 min. Expected end ~14:30 UTC Oct 23.
 
 **Interim, 2026-10-22 ~16:00 UTC (step 16,120 of 69,154; ~30,000 s run
-time).** The run restarted once: the first pod (06po4numi1lii3, host
-gos29w9nu2j0) died at step 660 with "CUDA error: unspecified launch failure"
-in the backward; the driver resumed from the step-500 checkpoint (optimizer
-state included) on pod 5mve5k8pmmu0c6 (community 3090). The 256-window
+time).** (Resumed once from its step-500 checkpoint after a GPU fault.) The 256-window
 held-out subset every 1,000 updates, beside the 4L/32H 30K run's at the same
 updates (same batch, so the same bytes seen; the training-bytes experiment's
 `polar-dense-u30000/train.log`):
