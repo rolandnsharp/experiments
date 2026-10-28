@@ -1,6 +1,6 @@
 # Speech recognition, round 5: does a bigger model help?
 
-**Date.** 2026-10-24. **Status.** pre-registered as [EXP-0023](https://experiments.blah.dev/EXP-0023) (2026-10-24 09:31 UTC); launch when the RunPod account is topped up.
+**Date.** 2026-10-24. **Status.** deferred 2026-10-29 for budget (deviation recorded), replaced by [stt-long-10m](../2026-10-29-stt-long-10m/); pre-registered as [EXP-0023](https://experiments.blah.dev/EXP-0023) (2026-10-24 09:31 UTC); launch when the RunPod account is topped up.
 Prediction written before any run.
 
 ## Question

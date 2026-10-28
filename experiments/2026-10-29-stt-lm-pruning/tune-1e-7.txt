@@ -1,0 +1,16 @@
+dev alpha 0.3 beta 0.0: WER 0.229 CER 0.098 over 300 utterances
+dev alpha 0.3 beta 0.5: WER 0.232 CER 0.098 over 300 utterances
+dev alpha 0.3 beta 1.0: WER 0.233 CER 0.096 over 300 utterances
+dev alpha 0.3 beta 2.0: WER 0.251 CER 0.099 over 300 utterances
+dev alpha 0.5 beta 0.0: WER 0.224 CER 0.102 over 300 utterances
+dev alpha 0.5 beta 0.5: WER 0.218 CER 0.099 over 300 utterances
+dev alpha 0.5 beta 1.0: WER 0.217 CER 0.096 over 300 utterances
+dev alpha 0.5 beta 2.0: WER 0.215 CER 0.093 over 300 utterances
+dev alpha 0.7 beta 0.0: WER 0.261 CER 0.116 over 300 utterances
+dev alpha 0.7 beta 0.5: WER 0.247 CER 0.112 over 300 utterances
+dev alpha 0.7 beta 1.0: WER 0.237 CER 0.108 over 300 utterances
+dev alpha 0.7 beta 2.0: WER 0.220 CER 0.101 over 300 utterances
+chosen on dev: alpha 0.5 beta 2.0 (dev alpha 0.5 beta 2.0: WER 0.215 CER 0.093 over 300 utterances)
+test-clean 2620, beam 32, alpha 0.5 beta 2.0: WER 0.201 CER 0.082 over 2620 utterances [174.32 s 77436 KB]
+test-clean 2620, beam 64, alpha 0.5 beta 2.0: WER 0.193 CER 0.078 over 2620 utterances [558.96 s 99044 KB]
+lm 56382750 bytes
