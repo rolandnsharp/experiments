@@ -39,9 +39,7 @@ cost.
 - **CTC over characters**, decoded greedily as you speak, and re-decoded at each pause with a
   word 3-gram (prefix beam search, also in the C file).
 
-The design descends from Diakosmos, a byte-level harmonic language model by Ajax Davis, and
-Roland Sharp's damped-rotation audio models. Every experiment that led here, including the
-failures, is written up with predictions made before each run ({experiments_link}).
+Every experiment that led here, including the failures, is written up with predictions made before each run ({experiments_link}).
 
 ## Results
 
@@ -92,10 +90,11 @@ default (alpha {alpha}, beta {beta}, passed by `dictate.sh`) were chosen on dev-
 
 `zara_stt.c` (inference: oscillator bank, blocks, int8 NEON kernels, beam search, streaming),
 `model.bin`, `params.pt` (PyTorch), `librispeech-3gram.zlm` (the 3-gram in the C file's format),
-`zara_stt.py` and `diakosmos.py` (training), `zara_poles.py`, `mulaw.py`, `pack_libri.py`,
+`zara_stt.py` (training), `diakosmos.py` (block and optimizer code by Ajax Davis, used with
+permission), `zara_poles.py`, `mulaw.py`, `pack_libri.py`,
 `export_c.py`, `export_lm.py`, `score_lines.py`, `dictate.sh`, `SHA256SUMS`.
 
 ## Credits
 
-Roland Sharp, with Claude (Anthropic). Architecture lineage: Ajax Davis (Diakosmos). Data: LibriSpeech audio (Panayotov et al., 2015), CC BY 4.0 (OpenSLR 12); the 3-gram and vocabulary
+Roland Sharp, with Claude (Anthropic). Data: LibriSpeech audio (Panayotov et al., 2015), CC BY 4.0 (OpenSLR 12); the 3-gram and vocabulary
 are from OpenSLR 11 (public domain).
