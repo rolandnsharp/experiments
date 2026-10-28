@@ -1,0 +1,11 @@
+{
+  "params_m": "10.4", "blocks": 6, "blocks_word": "six", "mlp": 672,
+  "updates": "150,000", "passes": "11.5", "gpu": "NVIDIA A40", "train_hours": "TODO", "cost": "TODO",
+  "alpha": "TODO", "beta": "TODO",
+  "rtf_a72": "TODO", "rtf_a53": "TODO", "wer12": "TODO",
+  "experiments_link": "https://experiments.blah.dev/EXP-0043",
+  "results_rows": [
+    ["**this model (round 6)**", "10.4 M", "TODO", "TODO", "TODO"],
+    ["round 3 (previous)", "5.8 M", "38.6 %", "62.1 %", "19.4 %"]
+  ]
+}

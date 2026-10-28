@@ -1,0 +1,8 @@
+{
+  "params_m": "5.8", "blocks": 4, "blocks_word": "four", "mlp": 448,
+  "updates": "30,000", "passes": "2.3", "gpu": "NVIDIA A40", "train_hours": 8, "cost": 5,
+  "alpha": 0.5, "beta": 1.0,
+  "rtf_a72": "0.12", "rtf_a53": "0.25", "wer12": "11.8 %",
+  "experiments_link": "https://experiments.blah.dev/EXP-0019",
+  "results_rows": [["this model (round 3)", "5.8 M", "38.6 %", "62.1 %", "19.4 %"]]
+}
