@@ -9,6 +9,6 @@
    benchmark on A72 (plugged in) and A53 for the card's speed row and wer12.
 5. Fill numbers-r6.json (no TODO left), then on the lab:
    `bash ~/zara/release-kit/release-build.sh ~/zara/stt/runs7/runs/osc/params.pt numbers-r6.json ~/zara/release-r6`
-6. Licence: MIT unless Ajax answers otherwise (sshmail #4242 to bush, 2026-10-29). Copy ~/zara/release-r6 to the uConsole, read README.md once more, then (Roland's go):
+6. Licence: MIT. Copy ~/zara/release-r6 to the uConsole, read README.md once more, then (Roland's go):
    `hf upload rolandnsharp/oscillator-asr ~/zara-stt/release-r6 . --repo-type model`
 7. Conclude EXP-0043; link the HF repo as an artifact on its run.
