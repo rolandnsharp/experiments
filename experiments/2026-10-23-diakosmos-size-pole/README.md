@@ -2,10 +2,10 @@
 
 **Record.** [EXP-0011](https://experiments.blah.dev/EXP-0011) on experiments.blah.dev; the numbers there and here match.
 
-**Date.** 2026-10-23. **Status.** predictions 1 and 2 held at 640 updates; the full polar run is
-**held** (2026-10-24 10:38 UTC, a deviation on EXP-0011): after the 4-layer gated-MLP result
-(EXP-0024, -0.118 bpb at equal parameters) the account's credit goes to a full-size run of the
-improved block instead; this run resumes from its 640-update checkpoint when restarted.
+**Date.** 2026-10-23. **Status.** predictions 1 and 2 held at 640 updates. The full polar run was
+held 2026-10-24 and resumed in stages 2026-10-27 (deviations on EXP-0011): it stops at Diakosmos's
+curve points and continues only while its full held-out score is at least 0.03 below his. **Stage A
+passed:** 1.6296 at update 2,560 against his 1.6842. Stage B (to 5,120, his 1.5712) is next.
 
 ## Question
 
@@ -168,6 +168,23 @@ too low for both forms at 3K updates, and real decay gains more from a higher
 rate than polar does. Here both arms use his rate at his size, where it was
 tuned for real decay (harmonic-gpt's 100 M settings); the polar arm has not
 been tuned at all, so if anything this setup favours the real arm.
+
+### Stage A (update 640 to 2,560)
+
+Resumed from the 640 checkpoint on 2026-10-27. Updates 640–1,920 ran on a community RTX 4090
+(18.8 s an update, about $2.38); that pod exited and no community 4090 was free for 8 hours, so
+1,920–2,560 resumed from the lab's 1,920 checkpoint on a secure RTX 4090 (8.2 s an update, about
+$1.45; a deviation on EXP-0011). All 18,538,212 held-out bytes:
+
+| update | Diakosmos (his run) | polar pole | lead |
+|---|---|---|---|
+| 640 | 1.9806 | 1.8794 | 0.101 |
+| 2,560 | 1.6842 | **1.6296** | **0.055** |
+
+The lead narrowed from 0.101 to 0.055 but is above the 0.03 rule, so stage B may go ahead. The
+64-window samples along the way (1.7784, 1.6516, 1.5750, 1.5351 at 640, 1,280, 1,920, 2,560) read
+about 0.09 below the full score at 2,560 and are not compared with his numbers. Cost of the run so far
+about $5.23.
 
 ## Decided vs measured
 

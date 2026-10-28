@@ -47,6 +47,7 @@ polelr4 at 500). No lever adds multiply-adds (20.34 M a byte).
 The polar model's inherited training settings leave gain on the table. The peak rate is the largest
 lever, as at 4 layers (EXP-0010). The two pole levers give about 0.01 each; both help the poles leave
 Diakosmos's 8–20 byte decays sooner, so they may be substitutes and are not assumed to add. lr2 earns its
-640-update gate at 100 M (EXP-0036); polelr4 passes too and earns one. wide does not pass the bar.
+640-update gate at 100 M (EXP-0036), and passed it: 1.8485 at update 640 against the polar arm's
+1.8794 at Diakosmos's rate (-0.031, concluded supported 2026-10-28). polelr4 passes too and earns one. wide does not pass the bar.
 
 Limits: two seeds, one size, 3,000 updates, one setting per lever, levers not combined.
