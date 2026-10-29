@@ -1,7 +1,8 @@
 # Speech recognition: our own block and optimizer vs the round-3 block
 
 **Date.** 2026-10-29. **Status.** running, [EXP-0048](https://experiments.blah.dev/EXP-0048),
-pre-registered 2026-10-29 01:14 UTC before launch. Pod `roland-stt8-a40-1` (A40, $0.59/h).
+pre-registered 2026-10-29 01:14 UTC before launch. First pod crashed before update 0 (CUDA device
+mismatch in a log line, $0.25, fixed); rerun from 02:21 UTC on a new A40 at 0.74 s/update, ~6.2 h.
 
 ## Question
 
@@ -28,6 +29,10 @@ cosine. At round 3's shape and budget, is it as accurate as the block it replace
 Every pole has |c| < 1 for every value of log_tau and theta, so no training step can make the
 recurrence unstable: [zara-block-pole-inside-unit-circle](https://proofs.blah.dev/theorems/01a1853d-f715-74a9-ba73-a2b2bb5b7ac0),
 verified in Lean on proofs.blah.dev (|exp z| = exp(Re z) and Re z = -(1/TAU_MAX + e^(-x))/rate < 0).
+And with |c| < 1 and inputs bounded by M, the streamed state h(n+1) = c h(n) + g u(n) from h(0) = 0
+never exceeds |g| M / (1 - |c|), however long the stream runs, so the C port cannot overflow:
+[zara-block-state-bounded](https://proofs.blah.dev/theorems/01a18580-38c9-77ae-b967-a11aacdb9f88)
+(induction: the bound is the fixed point of x -> |c| x + |g| M).
 
 ## Prediction
 

@@ -133,7 +133,7 @@ def describe_poles(p, b):
     logr, theta = pole(p, b)
     tau = -1.0 / (logr * FRAME_RATE)
     f = theta * FRAME_RATE / (2 * math.pi)
-    q = lambda t: ' '.join(f'{v:.3g}' for v in torch.quantile(t.detach().double(), torch.tensor([0.0, 0.5, 1.0], dtype=torch.float64)).tolist())
+    q = lambda t: ' '.join(f'{v:.3g}' for v in torch.quantile(t.detach().double().cpu(), torch.tensor([0.0, 0.5, 1.0], dtype=torch.float64)).tolist())
     return f'decay s [min median max] {q(tau)}, Hz {q(f)}'
 
 
