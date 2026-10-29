@@ -90,8 +90,7 @@ default (alpha {alpha}, beta {beta}, passed by `dictate.sh`) were chosen on dev-
 
 `zara_stt.c` (inference: oscillator bank, blocks, int8 NEON kernels, beam search, streaming),
 `model.bin`, `params.pt` (PyTorch), `librispeech-3gram.zlm` (the 3-gram in the C file's format),
-`zara_stt.py` (training), `diakosmos.py` (block and optimizer code by Ajax Davis, used with
-permission), `zara_poles.py`, `mulaw.py`, `pack_libri.py`,
+`zara_stt.py` and `zara_block.py` (training: model, block, optimizer), `mulaw.py`, `pack_libri.py`,
 `export_c.py`, `export_lm.py`, `score_lines.py`, `dictate.sh`, `SHA256SUMS`.
 
 ## Credits

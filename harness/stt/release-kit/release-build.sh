@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stage a Hugging Face release on the lab: release-build.sh PARAMS.pt NUMBERS.json OUTDIR
-# Exports the C model, copies the public code (release-kit/public/, never the oracle), writes
+# Exports the C model, copies the public code (release-kit/public/: only this project's code), writes
 # dictate.sh with the dev-tuned LM weights, fills the card, self-tests the C program from the
 # staged files only, and writes SHA256SUMS.
 set -euo pipefail
@@ -10,8 +10,8 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 $PY "$KIT/public/export_c.py" export "$PT" "$OUT/model.bin"
 cp "$PT" "$OUT/params.pt"
 cp ~/zara/stt/lm/librispeech-3gram.zlm "$OUT/"
-cp "$KIT"/public/{zara_stt.c,diakosmos.py,zara_stt.py,zara_poles.py,mulaw.py,pack_libri.py,export_c.py,export_lm.py,score_lines.py} "$OUT/"
-! grep -l "diakosmos_oracle\|Alpha" "$OUT"/*.py "$OUT"/zara_stt.c || { echo "private name found in public files"; exit 1; }
+cp "$KIT"/public/{zara_stt.c,zara_stt.py,zara_block.py,mulaw.py,pack_libri.py,export_c.py,export_lm.py,score_lines.py} "$OUT/"
+! { grep -il "diakosmos\|oracle\|harmonic.gpt" "$OUT"/*.py "$OUT"/zara_stt.c "$OUT"/README.md; grep -l "\bAlpha\b" "$OUT"/*.py "$OUT"/zara_stt.c "$OUT"/README.md; } || { echo "a name from outside this project found in the release"; exit 1; }
 A=$($PY -c "import json;print(json.load(open('$NUMS'))['alpha'])"); B=$($PY -c "import json;print(json.load(open('$NUMS'))['beta'])")
 cat > "$OUT/dictate.sh" <<EOT
 #!/bin/sh

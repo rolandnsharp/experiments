@@ -1,6 +1,6 @@
 # Speech recognition, round 6: the 10.4 M model trained five times longer
 
-**Date.** 2026-10-29. **Status.** running, [EXP-0043](https://experiments.blah.dev/EXP-0043),
+**Date.** 2026-10-29. **Status.** abandoned at update 7,940 ($1.65), [EXP-0043](https://experiments.blah.dev/EXP-0043),
 pre-registered 2026-10-28 22:08 UTC before launch. Replaces the deferred size comparison
 ([stt-capacity](../2026-10-24-stt-capacity/), EXP-0023) for budget: Roland's balance ($56.68)
 covered one of the two.
@@ -32,4 +32,7 @@ only). Size and length move together: the gain is attributed to neither alone.
 
 ## Results, Verdict
 
-Pending.
+Abandoned before any pre-registered measurement: the release must contain only this project's code,
+so the block and optimizer were rewritten (see [stt-own-block](../2026-10-29-stt-own-block/)) and a model
+trained on the old block could not be released. Subset WER (first 200 test-clean) 0.787 / 0.638 / 0.525
+at updates 2,500 / 5,000 / 7,500 (round 3 at 5,000: 0.664). Deviation recorded on EXP-0043.
