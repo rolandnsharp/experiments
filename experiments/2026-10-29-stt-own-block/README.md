@@ -23,6 +23,12 @@ cosine. At round 3's shape and budget, is it as accurate as the block it replace
 - a 600-update CPU run on dev-clean (`cpu-compare.sh`) trains without diverging (one loss
   spike at the end of its 60-update warmup, recovered by update 80)
 
+## Proved, not measured
+
+Every pole has |c| < 1 for every value of log_tau and theta, so no training step can make the
+recurrence unstable: [zara-block-pole-inside-unit-circle](https://proofs.blah.dev/theorems/01a1853d-f715-74a9-ba73-a2b2bb5b7ac0),
+verified in Lean on proofs.blah.dev (|exp z| = exp(Re z) and Re z = -(1/TAU_MAX + e^(-x))/rate < 0).
+
 ## Prediction
 
 Whole test-clean greedy WER **0.34–0.42** (round 3: 0.386). int8 C port A53 RTF ≤ 0.30
