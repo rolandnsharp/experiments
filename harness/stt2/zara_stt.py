@@ -449,7 +449,7 @@ def train(args):
     say('initial frame-rate block 0: ' + K.describe_poles(p, 'blocks.0.'))
     for v in p.values():
         v.requires_grad_(True)
-    upd = K.Optimizer(p, args.updates, lr=args.lr)
+    upd = K.Optimizer(p, args.updates, lr=args.lr, warmup=args.warmup)
     start = 0
     if args.resume:
         upd.load_state_dict(torch.load(args.resume, map_location=device))
@@ -592,6 +592,7 @@ def main():
     t.add_argument('--states', type=int, default=0, help='complex states per block (0: width / 2)')
     t.add_argument('--mlp', type=int, default=0, help='hidden width of a gated MLP after every block (0: none)')
     t.add_argument('--lr', type=float, default=1.5e-3, help='peak learning rate')
+    t.add_argument('--warmup', type=int, default=1000, help='linear warmup, updates')
     t.add_argument('--resume', type=Path, default=None, help='an optim.pt to continue from (with --init its params.pt)')
     t.add_argument('--batch-seconds', type=float, default=120.0)
     t.add_argument('--max-seconds', type=float, default=16.0, help='training utterances longer than this are skipped')

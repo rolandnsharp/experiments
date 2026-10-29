@@ -57,7 +57,7 @@ if ! echo "$CUDA" | grep -q True; then
 fi
 
 echo "== starting on the pod: subsets [$SUBSETS] train $TRAIN fronts [$FRONTS] updates $UPDATES batch $BATCH_SECONDS s extra tests $EXTRA_TESTS"
-pod "cd /root/zara/stt && rm -f RUN-DONE DATA-DONE && SUBSETS='$SUBSETS' TRAIN='$TRAIN' FRONTS='$FRONTS' UPDATES=$UPDATES EVAL_EVERY=$EVAL_EVERY BATCH_SECONDS=$BATCH_SECONDS EXTRA_TESTS=$EXTRA_TESTS MLP=${MLP:-0} WIDTH=${WIDTH:-448} STATES=${STATES:-0} LR=${LR:-} LAYERS=${LAYERS:-4} AUGMENT=${AUGMENT:-} WORKERS=${WORKERS:-} SEED=${SEED:-} INIT=${INIT_FILE:+init.pt} nohup bash pod-run-all.sh > run-all.log 2>&1 < /dev/null & disown; echo started"
+pod "cd /root/zara/stt && rm -f RUN-DONE DATA-DONE && SUBSETS='$SUBSETS' TRAIN='$TRAIN' FRONTS='$FRONTS' UPDATES=$UPDATES EVAL_EVERY=$EVAL_EVERY BATCH_SECONDS=$BATCH_SECONDS EXTRA_TESTS=$EXTRA_TESTS MLP=${MLP:-0} WIDTH=${WIDTH:-448} STATES=${STATES:-0} LR=${LR:-} WARMUP=${WARMUP:-} LAYERS=${LAYERS:-4} AUGMENT=${AUGMENT:-} WORKERS=${WORKERS:-} SEED=${SEED:-} INIT=${INIT_FILE:+init.pt} nohup bash pod-run-all.sh > run-all.log 2>&1 < /dev/null & disown; echo started"
 
 fetch() { timeout "${1:-300}" ssh $OPTS -p "$POD_PORT" root@"$POD_IP" 'cd /root/zara/stt && tar cf - runs runs-*.log run-all.log 2>/dev/null' | tar xf - -C ~/zara/stt2/$RESULTS/; }
 RESULTS=${RESULTS:-runs2}; mkdir -p ~/zara/stt2/$RESULTS
