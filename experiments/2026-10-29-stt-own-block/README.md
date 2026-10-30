@@ -74,3 +74,7 @@ warmup and a Muon-type update. Block and optimizer changed together (declared co
 does not show the block is worse. Next, per the analysis plan: the learning rate,
 [EXP-0050](https://experiments.blah.dev/EXP-0050) (3e-3, warmup 200; drafted before these final
 scores). int8 costs nothing; the block is 5% faster than round 3's on the A53.
+
+**Follow-up (2026-10-30).** EXP-0050 (3e-3) refuted: 0.491. [EXP-0051](../2026-10-29-stt-muon/) (Muon,
+same rate) supported: 0.338 greedy, 0.165 with the LM, beating round 3. The block was fine; the optimizer
+was the cause.
